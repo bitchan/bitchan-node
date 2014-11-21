@@ -2,9 +2,11 @@
   "name": "nekogrid-node",
   "version": "0.0.0",
   "description": "Node nekogrid client",
-  "main": "index.js",
+  "main": "./lib/index",
   "scripts": {
-    "test": "mocha && jshint ."
+    "test": "mocha && jshint .",
+    "start": "node bin/nekogrid.js",
+    "prepublish": "traceur --dir src lib --modules commonjs"
   },
   "repository": {
     "type": "git",
@@ -25,9 +27,9 @@
     "mocha": "*"
   },
   "dependencies": {
-    "es6-promise": "^2.0.0",
     "telehash-cs2a": "~0.0.4",
     "telehash-promise": "^0.1.0",
-    "telehash-ws": "^0.1.0"
+    "telehash-ws": "^0.1.0",
+    "traceur": "~0.0.74"
   }
 }
