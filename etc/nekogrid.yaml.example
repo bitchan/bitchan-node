@@ -1,0 +1,5 @@
+# This file contains settings file for nekogrid-node in YAML format.
+
+# Host and port for WebSocket server.
+ws_host: 127.0.0.1
+ws_port: 60123

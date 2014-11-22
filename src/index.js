@@ -1,24 +1,27 @@
-import {TEST} from "./util";
+const th = require("telehash-promise");
+
+import * as util from "./util";
 
 // You need to load and call this function in order to use
 // `nekogrid-node` as a library.
-export function init() {
+export function initRuntime() {
   require("traceur/bin/traceur-runtime");
 }
 
+function initTelehash() {
+  // XXX(Kagami): See <https://github.com/telehash/telehash-js/issues/23>.
+  delete th.extensions.udp4;
+  delete th.extensions.tcp4;
+  delete th.extensions.http;
+  th.add(require("telehash-ws"));
+}
+
 export function start() {
-  init();
+  initRuntime();
+  initTelehash();
+  util.initConfig();
+  util.initLog(th);
+}
 
-  let a = 1;
-  a = 2;
-  console.log(a);
-
-  const square = x => x * x;
-  console.log([1,2,3].map(square));
-
-  console.log(TEST);
-
-  var dest = {c: 3};
-  Object.assign(dest, {a: 1, b: 2});
-  console.log(dest);
+function generateKeys() {
 }

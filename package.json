@@ -6,6 +6,7 @@
   "scripts": {
     "test": "mocha && jshint .",
     "start": "node bin/nekogrid.js",
+    "dev": "node bin/nekogrid-dev.js",
     "prepublish": "traceur --dir src lib --modules commonjs"
   },
   "repository": {
@@ -27,7 +28,7 @@
     "mocha": "*"
   },
   "dependencies": {
-    "telehash-cs2a": "~0.0.4",
+    "js-yaml": "^3.2.3",
     "telehash-promise": "^0.1.0",
     "telehash-ws": "^0.1.0",
     "traceur": "~0.0.74"
