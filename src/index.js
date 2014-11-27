@@ -1,6 +1,7 @@
 import "traceur/bin/traceur-runtime";
 import th from "telehash-promise";
 import tpws from "telehash-ws";
+import * as db from "./db";
 import * as util from "./util";
 
 function initTelehash() {
@@ -15,6 +16,7 @@ export function start() {
   util.initConfig();
   util.initLog(th);
   initTelehash();
+  db.initDb();
 }
 
 // function generateKeys() {

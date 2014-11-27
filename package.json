@@ -9,6 +9,9 @@
     "dev": "node bin/nekogrid-dev.js",
     "prepublish": "traceur --dir src lib --modules commonjs"
   },
+  "bin": {
+    "nekogrid": "./bin/nekogrid.js"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/nekogrid/nekogrid-node.git"
@@ -29,8 +32,13 @@
   },
   "dependencies": {
     "js-yaml": "^3.2.3",
+    "knex": "^0.7.3",
     "telehash-promise": "^0.1.0",
     "telehash-ws": "^0.1.0",
     "traceur": "~0.0.74"
+  },
+  "optionalDependencies": {
+    "pg": "^4.0.0",
+    "sqlite3": "^3.0.4"
   }
 }
