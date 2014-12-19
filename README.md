@@ -1,10 +1,10 @@
-# nekogrid-node [![Build Status](https://travis-ci.org/nekogrid/nekogrid-node.svg?branch=master)](https://travis-ci.org/nekogrid/nekogrid-node)
+# bitchan-node [![Build Status](https://travis-ci.org/bitchan/bitchan-node.svg?branch=master)](https://travis-ci.org/bitchan/bitchan-node)
 
-Node [nekogrid](https://github.com/nekogrid/nekogrid) client.
+Node [bitchan](https://github.com/bitchan/bitchan) client.
 
 ## License
 
-nekogrid-node - Node nekogrid client
+bitchan-node - Node bitchan client
 
 Written in 2014 by Kagami Hiiragi <kagami@genshiken.org>
 

@@ -3,7 +3,7 @@ import path from "path";
 import yaml from "js-yaml";
 
 export const config = {};
-const NAME = "nekogrid";
+const NAME = "bitchan";
 
 function getConfigDir() {
   if (process.env.NODE_ENV === "production") {
