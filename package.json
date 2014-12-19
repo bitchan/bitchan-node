@@ -33,8 +33,6 @@
   "dependencies": {
     "js-yaml": "^3.2.3",
     "knex": "^0.7.3",
-    "telehash-promise": "^0.1.0",
-    "telehash-ws": "^0.1.0",
     "traceur": "~0.0.74"
   },
   "optionalDependencies": {
