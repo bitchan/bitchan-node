@@ -25,6 +25,3 @@ export function initConfig(filename) {
   Object.assign(config, parsed);
   return config;
 }
-
-export function initLog() {
-}

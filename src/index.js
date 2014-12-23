@@ -4,7 +4,6 @@ import * as util from "./util";
 
 export function start() {
   util.initConfig();
-  util.initLog(th);
   db.initDb();
 }
 
