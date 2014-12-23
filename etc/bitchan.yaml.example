@@ -1,5 +1,7 @@
 # This file contains settings file for bitchan-node in YAML format.
 
-# Host and port for WebSocket server.
+# Host and port for WebSocket relay server (used to proxy clients
+# messages into Bitmessage network since Browsers don't have TCP
+# support).
 ws_host: 127.0.0.1
-ws_port: 60123
+ws_port: 8440
