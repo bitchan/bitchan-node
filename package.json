@@ -17,7 +17,11 @@
     "url": "https://github.com/bitchan/bitchan-node.git"
   },
   "keywords": [
-    "bitchan"
+    "bitchan",
+    "bitmessage",
+    "server",
+    "application",
+    "messaging"
   ],
   "author": "Kagami Hiiragi",
   "license": "CC0",

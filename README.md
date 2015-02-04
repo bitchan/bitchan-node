@@ -1,6 +1,8 @@
 # bitchan-node [![Build Status](https://travis-ci.org/bitchan/bitchan-node.svg?branch=master)](https://travis-ci.org/bitchan/bitchan-node)
 
-Node [bitchan](https://github.com/bitchan/bitchan) client.
+Node bitchan client.
+
+Allows you to connect to the Bitmessage network using Node.js and handle messages from other nodes and at the same time wrap WebSocket traffic from bitchan web clients into TCP packets. Read more about bitchan [at the wiki](https://github.com/bitchan/docs/wiki).
 
 ## License
 
