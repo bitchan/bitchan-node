@@ -5,9 +5,7 @@
   "main": "./lib/index",
   "scripts": {
     "test": "mocha && jshint .",
-    "start": "node bin/bitchan.js",
-    "dev": "node bin/bitchan-dev.js",
-    "prepublish": "traceur --dir src lib --modules commonjs"
+    "start": "node bin/bitchan.js"
   },
   "bin": {
     "bitchan": "./bin/bitchan.js"
@@ -35,9 +33,9 @@
     "mocha": "*"
   },
   "dependencies": {
+    "6to5": "^3.3.10",
     "js-yaml": "^3.2.3",
-    "knex": "^0.7.3",
-    "traceur": "~0.0.74"
+    "knex": "^0.7.3"
   },
   "optionalDependencies": {
     "pg": "^4.0.0",

@@ -10,9 +10,6 @@ function getConfigDir() {
     // TODO(Kagami): Make it cross-platform and more flexible.
     return path.join("/etc", NAME);
   } else {
-    // XXX(Kagami): This may stop working if we move the util module.
-    // It's better to use something like `require.main.filename` but
-    // it's not available in `traceur.require` mode.
     return path.join(__dirname, "..", "etc");
   }
 }

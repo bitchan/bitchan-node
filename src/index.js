@@ -1,11 +1,8 @@
-import "traceur/bin/traceur-runtime";
-import * as db from "./db";
-import * as util from "./util";
+import "6to5/polyfill";
+import {initConfig} from "./util";
+import {initDb} from "./db";
 
 export function start() {
-  util.initConfig();
-  db.initDb();
+  initConfig();
+  initDb();
 }
-
-// function generateKeys() {
-// }

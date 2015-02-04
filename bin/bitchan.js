@@ -1,1 +1,2 @@
-require("../lib").start();
+require("6to5/register");
+require("../src").start();
