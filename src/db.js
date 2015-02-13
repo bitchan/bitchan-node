@@ -1,7 +1,5 @@
-import * as knex from "knex";
-import {config} from "./util";
+// import * as knex from "knex";
+// import conf from "./config";
 
-export function initDb() {
-  console.log(knex);
-  console.log(config);
+export function init() {
 }

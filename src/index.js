@@ -1,7 +1,11 @@
-import {initConfig} from "./util";
-import {initDb} from "./db";
+/**
+ * Application entry point.
+ */
 
-export function start() {
+import {init as initConfig} from "./config";
+import {init as initDb} from "./db";
+
+export default function() {
   initConfig();
   initDb();
 }

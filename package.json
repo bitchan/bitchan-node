@@ -2,10 +2,11 @@
   "name": "bitchan-node",
   "version": "0.0.0",
   "description": "Node bitchan client",
-  "main": "./lib/index",
+  "main": "./lib/index.js",
   "scripts": {
+    "start": "./bin/bitchan.js -c etc/bitchan.yaml",
     "test": "mocha && jshint .",
-    "start": "node bin/bitchan.js"
+    "j": "jshint ."
   },
   "bin": {
     "bitchan": "./bin/bitchan.js"
@@ -33,9 +34,12 @@
     "mocha": "*"
   },
   "dependencies": {
-    "6to5": "^3.3.10",
+    "6to5": "^3.6.2",
+    "bitmessage": "^0.5.0",
+    "convict": "^0.6.1",
     "js-yaml": "^3.2.3",
-    "knex": "^0.7.3"
+    "knex": "^0.7.3",
+    "minimist": "^1.1.0"
   },
   "optionalDependencies": {
     "pg": "^4.0.0",
