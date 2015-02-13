@@ -2,10 +2,14 @@
  * Application entry point.
  */
 
-import {init as initConfig} from "./config";
-import {init as initDb} from "./db";
+import {initSync as initConfigSync} from "./config";
+import {init as initStorage} from "./storage";
+import {init as initNet} from "./net";
 
 export default function() {
-  initConfig();
-  initDb();
+  initConfigSync();
+  initStorage().then(initNet).catch(function(err) {
+    console.error(err.message);
+    process.exit(1);
+  });
 }

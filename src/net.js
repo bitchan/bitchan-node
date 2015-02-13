@@ -1,0 +1,6 @@
+/**
+ * Networking.
+ */
+
+export function init() {
+}

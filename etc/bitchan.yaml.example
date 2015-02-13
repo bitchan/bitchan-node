@@ -1,5 +1,9 @@
 # Default bitchan config.
 
+###
+# Networking settings.
+###
+
 # TCP listening settings.
 #tcp-host: 0.0.0.0
 #tcp-port: 8444
@@ -9,3 +13,19 @@
 # network since browsers don't have TCP support.
 #ws-host: 0.0.0.0
 #ws-port: 18444
+
+###
+# Storage settings.
+###
+
+# Storage type (sqlite or pg).
+#storage-backend: sqlite
+
+# SQLite storage settings.
+#sqlite-db-path: /var/lib/bitchan/bitchan.db
+
+# PostgreSQL storage settings.
+#pg-host: 127.0.0.1
+#pg-user: bitchan
+#pg-password: secret
+#pg-database: bitchan

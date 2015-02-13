@@ -22,16 +22,22 @@ Options:
   -v, --version  Show version number
 `;
 
-// TODO(Kagami): Better options validation.
+// TODO(Kagami): Validate options.
 const conf = convict({
   "tcp-host": {default: "0.0.0.0"},
   "tcp-port": {default: 8444, format: "port"},
   "ws-host": {default: "0.0.0.0"},
   "ws-port": {default: 18444, format: "port"},
+  "storage-backend": {default: "sqlite"},
+  "sqlite-db-path": {default: "/var/lib/bitchan/bitchan.db"},
+  "pg-host": {default: "127.0.0.1"},
+  "pg-user": {default: "bitchan"},
+  "pg-password": {default: "secret"},
+  "pg-database": {default: "bitchan"},
 });
 export default conf;
 
-export function init() {
+export function initSync() {
   // Basic CLI boilerplate.
   let argv = parseArgs(process.argv.slice(2), {
     alias: {c: "config", v: "version", h: "help"},
@@ -58,14 +64,14 @@ export function init() {
   try {
     parsed = yaml.safeLoad(data);
   } catch (e) {
-    console.log(`Failed to parse ${argv.config}: ${e.message}`);
+    console.error(`Failed to parse ${argv.config}: ${e.message}`);
     process.exit(1);
   }
   conf.load(parsed);
   try {
     conf.validate();
   } catch(e) {
-    console.log(`Failed to load ${argv.config}: ${e.message}`);
+    console.error(`Failed to load ${argv.config}: ${e.message}`);
     process.exit(1);
   }
 }
