@@ -8,6 +8,29 @@
 #tcp-host: 0.0.0.0
 #tcp-port: 8444
 
+# Bootstrap settings. Don't modify it without necessity.
+#tcp-seeds:
+#  - ["23.239.9.147", 8444]
+#  - ["98.218.125.214", 8444]
+#  - ["192.121.170.162", 8444]
+#  - ["108.61.72.12", 28444]
+#  - ["158.222.211.81", 8080]
+#  - ["79.163.240.110", 8446]
+#  - ["178.62.154.250", 8444]
+#  - ["178.62.155.6", 8444]
+#  - ["178.62.155.8", 8444]
+#  - ["68.42.42.120", 8444]
+#tcp-dns-seeds:
+#  - ["bootstrap8444.bitmessage.org", 8444]
+#  - ["bootstrap8080.bitmessage.org", 8080]
+
+# Connect to the specified node and only the specified node. Useful if
+# you trust a node on your local network and want to sync to it quickly.
+# Disallows incoming connections. Disables the built-in timing attack
+# mitigation mechanism. (This is the same as PyBitmessage setting.)
+# Has format ["host", port]. Disabled by default.
+#tcp-trusted-peer:
+
 # WebSocket listening settings.
 # WebSocket server used to proxy web-client messages into Bitmessage
 # network since browsers don't have TCP support.
@@ -29,3 +52,17 @@
 #pg-user: bitchan
 #pg-password: secret
 #pg-database: bitchan
+
+###
+# Logging settings.
+###
+
+# Instantiate winston transports with specified settings.
+# Currently only file and console transports are available.
+# See <https://github.com/winstonjs/winston#working-with-transports> for
+# a list of transport settings.
+#logging:
+#  file:
+#    - {filename: /var/log/bitchan/bitchan.log, level: warn, json: false}
+#  console:
+#    - {level: info, timestamp: true, colorize: true}

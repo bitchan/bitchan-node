@@ -1,0 +1,8 @@
+# Development config sample.
+
+tcp-trusted-peer: [172.17.42.1, 8444]
+ws-host: 127.0.0.1
+sqlite-db-path: bitchan.db
+logging:
+  console:
+    - {level: debug, timestamp: true, colorize: true}
