@@ -21,7 +21,8 @@ It will automatically create default config at `~/.bitchan/bitchan.yaml`
 and run `bitchan-node` with TCP server at 8444 port and WebSocket server
 at 18444. By default SQLite database will be used to store Bitmessage
 objects at `~/.bitchan/bitchan.db`. Logs will be placed at
-`~/.bitchan/bitchan.log`.
+`~/.bitchan/bitchan.log`. (Note: Windows equivalent for `~/.bitchan` is
+`%APPDATA%/bitchan`.)
 
 To run `bitchan-node` in a background you may either use
 [forever utility](https://www.npmjs.com/package/forever) or some sort of
