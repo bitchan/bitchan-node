@@ -1,8 +1,29 @@
 # bitchan-node [![Build Status](https://travis-ci.org/bitchan/bitchan-node.svg?branch=master)](https://travis-ci.org/bitchan/bitchan-node)
 
-Node bitchan client.
+[![NPM](https://nodei.co/npm/bitchan-node.png)](https://www.npmjs.com/package/bitchan-node)
 
-Allows you to connect to the Bitmessage network using Node.js and handle messages from other nodes and at the same time wrap WebSocket traffic from bitchan web clients into TCP packets. Read more about bitchan [at the wiki](https://github.com/bitchan/meta/wiki).
+**NOTE: bitchan-node is in early alpha and may not work at all at this stage.**
+
+bitchan/Bitmessage client for Node.js.
+
+Works as a common node in the Bitmessage network and also provides WebSocket gateway for [bitchan web clients](https://github.com/bitchan/bitchan-web). Read more about bitchan [at the wiki](https://github.com/bitchan/meta/wiki).
+
+## Usage
+
+### With npm
+
+```bash
+$ [sudo] npm install -g bitchan-node
+$ bitchan
+```
+
+It will automatically create default config at `~/.bitchan/bitchan.yaml`
+and run `bitchan-node` with TCP server at 8444 port and WebSocket server
+at 18444. By default SQLite database will be used to store Bitmessage
+objects at `~/.bitchan/bitchan.db`. Logs will be placed at
+`~/.bitchan/bitchan.log`.
+
+### With deb package
 
 ## License
 
