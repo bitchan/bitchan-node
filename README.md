@@ -23,6 +23,10 @@ at 18444. By default SQLite database will be used to store Bitmessage
 objects at `~/.bitchan/bitchan.db`. Logs will be placed at
 `~/.bitchan/bitchan.log`.
 
+To run `bitchan-node` in a background you may either use
+[forever utility](https://www.npmjs.com/package/forever) or some sort of
+terminal multiplexing/nohup.
+
 ### With deb package
 
 ## License
