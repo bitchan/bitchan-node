@@ -18,9 +18,10 @@ const CONFIG_PATH = os.platform() === "win32" ?
 const USAGE = `${APP_NAME} v${APP_VERSION}
 
 Options:
-  -c, --config   Config path          [default: "${CONFIG_PATH}"]
-  -h, --help     Show help
-  -v, --version  Show version number
+  -c, --config        Config path          [default: "${CONFIG_PATH}"]
+  -h, --help          Show help
+  -v, --version       Show version number
+  -t, --stack-traces  Print stack traces
 `;
 // NOTE(Kagami): Imply stream number 1 by default to simplify things. We
 // may introduce third argument indicating stream number in future.
@@ -52,7 +53,8 @@ const DEFAULT_LOGGING = {
 // etc.). Should we allow to run it from normal user without
 // preconfiguration steps? See <https://github.com/rlidwka/sinopia> for
 // an example.
-const conf = convict({
+export const conf = convict({
+  "stack-traces": {default: false},
   "tcp-host": {default: "0.0.0.0"},
   "tcp-port": {default: 8444, format: "port"},
   "tcp-seeds": {default: DEFAULT_SEEDS},
@@ -73,8 +75,8 @@ export default conf;
 export function initSync() {
   // Basic CLI boilerplate.
   let argv = parseArgs(process.argv.slice(2), {
-    alias: {c: "config", v: "version", h: "help"},
-    boolean: ["v", "h"],
+    alias: {c: "config", v: "version", h: "help", t: "stack-traces"},
+    boolean: ["v", "h", "t"],
     default: {c: CONFIG_PATH},
   });
   if (argv.help) {
@@ -85,6 +87,9 @@ export function initSync() {
     console.log(APP_VERSION);
     process.exit();
   }
+
+  // Load CLI arguments.
+  conf.load(argv);
 
   // Load and validate real config data.
   let data, parsed;

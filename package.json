@@ -4,7 +4,7 @@
   "description": "Node bitchan client",
   "main": "./lib/index.js",
   "scripts": {
-    "start": "./bin/bitchan.js -c etc/bitchan-dev.yaml.example",
+    "start": "./bin/bitchan.js -c etc/bitchan-dev.yaml.example -t",
     "test": "mocha && jshint .",
     "j": "jshint ."
   },
