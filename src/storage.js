@@ -42,10 +42,18 @@ export function init() {
 
 function initSchema() {
   return knex.schema.createTableIfNotExists("inventory", function(table) {
-    table.string("hash", 32).primary();
-    table.binary("payload").notNullable();
-    table.timestamp("expires_time").notNullable();
-    table.integer("object_type").notNullable();
-    table.string("from");
+    table.string("vector", 32).primary();
+    table.binary("payload").notNullable();  // Message payload data
+    table.timestamp("expires").notNullable();
+    table.integer("type").notNullable();  // Object type, 0-3 currently
+    table.integer("stream").notNullable();
+    table.string("from");  // Sender's BM address if we have deciphered object
+  }).createTableIfNotExists("known_nodes", function(table) {
+    table.string("host", 39).notNullable();  // IPv4/IPv6 address
+    table.integer("port").notNullable();
+    table.integer("stream").notNullable();
+    table.binary("services").notNullable();
+    table.timestamp("last_active").notNullable().defaultTo(knex.fn.now());
+    table.unique(["host", "port", "stream"]);
   });
 }

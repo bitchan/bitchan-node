@@ -22,6 +22,8 @@ Options:
   -h, --help     Show help
   -v, --version  Show version number
 `;
+// NOTE(Kagami): Imply stream number 1 by default to simplify things. We
+// may introduce third argument indicating stream number in future.
 const DEFAULT_SEEDS = [
   ["23.239.9.147", 8444],
   ["98.218.125.214", 8444],
