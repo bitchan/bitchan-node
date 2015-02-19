@@ -16,6 +16,7 @@ export function init() {
     if (backend === "sqlite") {
       knex = createKnex({
         client: "sqlite3",
+        debug: conf.get("debug"),
         connection: {
           filename: conf.get("sqlite-db-path"),
         },
@@ -23,6 +24,7 @@ export function init() {
     } else if (backend === "pg") {
       knex = createKnex({
         client: "pg",
+        debug: conf.get("debug"),
         connection: {
           host: conf.get("pg-host"),
           user: conf.get("pg-user"),
@@ -55,13 +57,43 @@ function initSchema() {
     return knex.schema.hasTable("known_nodes");
   }).then(function(exists) {
     if (exists) { return; }
-    return knex.schema.createTable("known_nodes", function(table) {
-      table.string("host", 39).notNullable();  // IPv4/IPv6 address
-      table.integer("port").notNullable();
-      table.integer("stream").notNullable();
-      table.binary("services").notNullable();
-      table.timestamp("last_active").notNullable().defaultTo(knex.fn.now());
-      table.unique(["host", "port", "stream"]);
-    });
+    // XXX(Kagami): knex doesn't have support for "ON CONFLICT" so we
+    // are using raw SQL here.
+    return knex.schema.raw(`
+      CREATE TABLE known_nodes (
+        host VARCHAR(39) NOT NULL,
+        port INTEGER NOT NULL,
+        stream INTEGER NOT NULL,
+        services BLOB NOT NULL,
+        last_active DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(host, port, stream) ON CONFLICT REPLACE
+      )
+    `);
   });
 }
+
+/** Start a new transaction. */
+export function transaction(cb) {
+  return knex.transaction(cb);
+}
+
+/**
+ * Known nodes storage abstraction.
+ */
+export let knownNodes = {
+  /** Return whether there are any known nodes. */
+  isEmpty: function(trx) {
+    return trx
+      .select(trx.raw("1"))
+      .from("known_nodes")
+      .limit(1)
+      .then(function(rows) {
+        return !rows.length;
+      });
+  },
+
+  /** Insert one or many nodes into the table. */
+  insert: function(trx, nodes) {
+    return trx.insert(nodes).into("known_nodes");
+  },
+};

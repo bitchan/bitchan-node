@@ -18,10 +18,10 @@ const CONFIG_PATH = os.platform() === "win32" ?
 const USAGE = `${APP_NAME} v${APP_VERSION}
 
 Options:
-  -c, --config        Config path          [default: "${CONFIG_PATH}"]
-  -h, --help          Show help
-  -v, --version       Show version number
-  -t, --stack-traces  Print stack traces
+  -c, --config   Config path          [default: "${CONFIG_PATH}"]
+  -h, --help     Show help
+  -v, --version  Show version number
+  -d, --debug    Enable extra debug
 `;
 // NOTE(Kagami): Imply stream number 1 by default to simplify things. We
 // may introduce third argument indicating stream number in future.
@@ -54,7 +54,7 @@ const DEFAULT_LOGGING = {
 // preconfiguration steps? See <https://github.com/rlidwka/sinopia> for
 // an example.
 export const conf = convict({
-  "stack-traces": {default: false},
+  "debug": {default: false},
   "tcp-host": {default: "0.0.0.0"},
   "tcp-port": {default: 8444, format: "port"},
   "tcp-seeds": {default: DEFAULT_SEEDS},
@@ -75,7 +75,7 @@ export default conf;
 export function initSync() {
   // Basic CLI boilerplate.
   let argv = parseArgs(process.argv.slice(2), {
-    alias: {c: "config", v: "version", h: "help", t: "stack-traces"},
+    alias: {c: "config", v: "version", h: "help", d: "debug"},
     boolean: ["v", "h", "t"],
     default: {c: CONFIG_PATH},
   });
