@@ -57,8 +57,9 @@ function initSchema() {
     return knex.schema.hasTable("known_nodes");
   }).then(function(exists) {
     if (exists) { return; }
-    // XXX(Kagami): knex doesn't have support for "ON CONFLICT" so we
-    // are using raw SQL here.
+    // NOTE(Kagami): knex doesn't have support for "ON CONFLICT" so we
+    // are using raw SQL here. See
+    // <https://github.com/tgriesser/knex/issues/694> for details.
     return knex.schema.raw(`
       CREATE TABLE known_nodes (
         host VARCHAR(39) NOT NULL,
@@ -81,8 +82,13 @@ export function transaction(cb) {
  * Known nodes storage abstraction.
  */
 export let knownNodes = {
-  /** Return whether there are any known nodes. */
+  /**
+   * Return whether known nodes store is empty.
+   * @param {?Object} trx - Current transaction
+   * @return {Promise.<boolean>}
+   */
   isEmpty: function(trx) {
+    trx = trx || knex;
     return trx
       .select(trx.raw("1"))
       .from("known_nodes")
@@ -92,8 +98,39 @@ export let knownNodes = {
       });
   },
 
-  /** Insert one or many nodes into the table. */
-  insert: function(trx, nodes) {
+  /**
+   * Add one or many nodes to the store.
+   * @param {?Object} trx - Current transaction
+   * @param {(Object|Object[])} nodes - Node object(s)
+   * @return {Promise}
+   */
+  add: function(trx, nodes) {
+    trx = trx || knex;
     return trx.insert(nodes).into("known_nodes");
+  },
+
+  /**
+   * Return random node for the given stream number.
+   * @param {?Object} trx - Current transaction
+   * @param {number} stream - Stream number of the node
+   * @param {(string[])=} excludeHosts - Ignore nodes with this hosts
+   * @return {Promise.<Object>}
+   */
+  getRandom: function(trx, stream, excludeHosts) {
+    trx = trx || knex;
+    excludeHosts = excludeHosts || [];
+    // FIXME(Kagami): <https://github.com/tgriesser/knex/issues/700>
+    let q = trx.select().from("known_nodes").where({stream});
+    if (excludeHosts.length) { q = q.whereNotIn("host", excludeHosts); }
+    return q
+      .orderByRaw("RANDOM()")
+      .limit(1)
+      .then(function(rows) {
+        if (rows.length) {
+          return rows[0];
+        } else {
+          throw new Error("Empty result");
+        }
+      });
   },
 };

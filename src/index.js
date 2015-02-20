@@ -7,7 +7,7 @@
 // * Module `initSync` functions don't return anything and may have
 //   side-effects (e.g. exit node process)
 // * All storage management routines accept transaction reference as the
-//   first argument and return promises
+//   first argument or null and return promises
 
 import {initSync as initConfigSync, conf} from "./config";
 import {init as initLogging} from "./log";

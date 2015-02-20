@@ -7,5 +7,7 @@ import {init as initTcp} from "./tcp";
 import {init as initWs} from "./ws";
 
 export function init() {
-  return initKnownNodes().then(initTcp).then(initWs);
+  return initKnownNodes()
+    .then(initTcp)
+    .then(initWs);
 }

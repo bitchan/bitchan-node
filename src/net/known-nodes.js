@@ -38,7 +38,7 @@ export function init() {
         "Store is empty, add %s hardcoded bootstrap nodes",
         nodes.length
       );
-      return storage.knownNodes.insert(trx, nodes);
+      return storage.knownNodes.add(trx, nodes);
     }).then(function() {
       // Copy PyBitmessage behavior here, don't lookup seeds via DNS for
       // trusted peer mode.
@@ -47,7 +47,7 @@ export function init() {
       return transport.bootstrapDns().then(function(nodes) {
         nodes = nodes.map(getnodeobj);
         logDebug("Add %s DNS bootstrap nodes", nodes.length);
-        return storage.knownNodes.insert(trx, nodes);
+        return storage.knownNodes.add(trx, nodes);
       });
     });
 
