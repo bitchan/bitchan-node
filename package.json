@@ -38,7 +38,7 @@
     "bitmessage": "^0.5.0",
     "convict": "^0.6.1",
     "js-yaml": "^3.2.3",
-    "knex": "^0.7.3",
+    "knex": "tgriesser/knex",
     "minimist": "^1.1.0",
     "winston": "^0.9.0"
   },

@@ -119,10 +119,11 @@ export let knownNodes = {
   getRandom: function(trx, stream, excludeHosts) {
     trx = trx || knex;
     excludeHosts = excludeHosts || [];
-    // FIXME(Kagami): <https://github.com/tgriesser/knex/issues/700>
-    let q = trx.select().from("known_nodes").where({stream});
-    if (excludeHosts.length) { q = q.whereNotIn("host", excludeHosts); }
-    return q
+    return trx
+      .select()
+      .from("known_nodes")
+      .where({stream})
+      .whereNotIn("host", excludeHosts)
       .orderByRaw("RANDOM()")
       .limit(1)
       .then(function(rows) {
