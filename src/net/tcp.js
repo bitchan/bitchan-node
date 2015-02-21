@@ -115,13 +115,13 @@ function listenIncoming(opts) {
 }
 
 // Report info about current connections.
-function logconns() {
+function logConnInfo() {
   let allNum = Object.keys(connected).length;
   logDebug("Total %s connection(s) (%s outcoming)", allNum, outcomingNum);
 }
 
 // Human-readably size of the message.
-function getsize(payload) {
+function getSize(payload) {
   // Message header length is 24 bytes.
   let len = payload.length + 24;
   if (len >= 1024) {
@@ -135,7 +135,7 @@ function getsize(payload) {
 function setupTransport({transport, host, port}) {
   let start = new Date().getTime();
   connected[host] = transport;
-  logconns();
+  logConnInfo();
 
   transport.on("established", function() {
     let delta = (new Date().getTime() - start) / 1000;
@@ -145,10 +145,10 @@ function setupTransport({transport, host, port}) {
       let start = new Date().getTime();
       logDebug(
         "Got new message '%s' (%s) from %s:%s",
-        command, getsize(payload), host, port);
+        command, getSize(payload), host, port);
       let handler = messageHandlers[command];
       if (!handler) {
-        return logWarn(
+        return logInfo(
           "Skip unknown message '%s' from %s:%s",
           command, host, port);
       }
@@ -177,17 +177,18 @@ function setupTransport({transport, host, port}) {
   transport.on("close", function() {
     logInfo("Connection to %s:%s was closed", host, port);
     delete connected[host];
-    logconns();
+    logConnInfo();
   });
 }
 
-// NOTE(Kagami): We need hoisting to use it in `setupTransport` function
-// above.
+// NOTE(Kagami): We need hoisting to use this variable in
+// `setupTransport` function above.
 var messageHandlers = {
   error: function({payload, host, port}) {
     // Just display incoming error message.
     let decoded = messages.error.decodePayload(payload);
-    let text = `Got error message with type ${decoded.fatal} `;
+    let type = messages.error.type2str(decoded.fatal);
+    let text = `Got error message with type ${type} `;
     text += `from ${host}:${port}: ${decoded.errorText}`;
     if (decoded.banTime) {
       text += `; ban time is ${decoded.banTime}s`;
@@ -198,17 +199,22 @@ var messageHandlers = {
     }
     logWarn(text);
   },
+
   ping: function({transport}) {
     transport.send("pong");
   },
+
   addr: function({payload}) {
     let decoded = messages.addr.decodePayload(payload);
     logDebug("Got %s network address(es)", decoded.addrs.length);
   },
+
   inv: function() {
   },
+
   getdata: function() {
   },
+
   object: function() {
   },
 };
