@@ -18,8 +18,8 @@ export const MY_SERVICES = bitmessage.structs.ServicesBitfield().set([
   bitmessage.structs.ServicesBitfield.NODE_GATEWAY,
 ]);
 
-// Logging boilerplate since it's easier in use than custom loggers.
-export function log(prefix, level) {
+// Simple logger factory since it's easier in use than custom loggers.
+export function getLogger(prefix, level) {
   prefix = `[${prefix}] `;
   return function(msg, ...args) {
     msg = prefix + msg;

@@ -6,9 +6,9 @@ import bitmessage from "bitmessage";
 import TcpTransport from "bitmessage/lib/net/tcp";
 import conf from "../config";
 import * as storage from "../storage";
-import {DEFAULT_STREAM, log} from "./common";
+import {DEFAULT_STREAM, getLogger} from "./common";
 
-const logDebug = log("known-nodes", "debug");
+const logDebug = getLogger("known-nodes", "debug");
 
 const SERVICES_BUF = bitmessage.structs
   .ServicesBitfield()

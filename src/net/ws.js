@@ -4,9 +4,9 @@
 
 import WsTransport from "bitmessage/lib/net/ws";
 import conf from "../config";
-import {MY_SERVICES, MY_USER_AGENT, log} from "./common";
+import {MY_SERVICES, MY_USER_AGENT, getLogger} from "./common";
 
-const logInfo = log("WebSocket", "info");
+const logInfo = getLogger("WebSocket", "info");
 
 export function init() {
   return new Promise(function(resolve) {

@@ -4,13 +4,16 @@
  * compatible with the rest of network.
  */
 
+import bitmessage from "bitmessage";
 import TcpTransport from "bitmessage/lib/net/tcp";
 import conf from "../config";
 import * as storage from "../storage";
-import {DEFAULT_STREAM, MY_SERVICES, MY_USER_AGENT, log} from "./common";
+import {DEFAULT_STREAM, MY_SERVICES, MY_USER_AGENT, getLogger} from "./common";
 
-const logDebug = log("TCP", "debug");
-const logInfo = log("TCP", "info");
+const messages = bitmessage.messages;
+const logDebug = getLogger("TCP", "debug");
+const logInfo = getLogger("TCP", "info");
+const logWarn = getLogger("TCP", "warn");
 
 export function init() {
   return new Promise(function(resolve) {
@@ -84,18 +87,20 @@ function runOutcomingLoop(opts) {
         outcomingNum--;
       });
       setupTransport({transport, host, port});
-      // transport.connect(port, host);
+      transport.connect(port, host);
     }
     setTimeout(runOutcomingLoop, 100, opts);
   }).catch(function(err) {
-    let msg = "Failed to find node to connect (%s), sleeping for 3 seconds";
-    logDebug(msg, err.message);
+    logDebug(
+      "Failed to find node to connect (%s), sleeping for 3 seconds",
+      err.message);
     setTimeout(runOutcomingLoop, 3000, opts);
   });
 }
 
 function listenIncoming(opts) {
   let server = createTransport();
+  // TODO(Kagami): Pass new connection info as an object?
   server.on("connection", function(transport, host, port) {
     logInfo("Got new connection from %s:%s", host, port);
     if (isConnected(host)) {
@@ -109,18 +114,101 @@ function listenIncoming(opts) {
   logInfo("Listening at %s:%s", opts.host, opts.port);
 }
 
-function logConnInfo() {
+// Report info about current connections.
+function logconns() {
   let allNum = Object.keys(connected).length;
   logDebug("Total %s connection(s) (%s outcoming)", allNum, outcomingNum);
 }
 
+// Human-readably size of the message.
+function getsize(payload) {
+  // Message header length is 24 bytes.
+  let len = payload.length + 24;
+  if (len >= 1024) {
+    return (len / 1024).toFixed(2) + "KiB";
+  } else {
+    return len + "B";
+  }
+}
+
 // Setup event handlers for a new incoming/outcoming connection.
 function setupTransport({transport, host, port}) {
+  let start = new Date().getTime();
   connected[host] = transport;
-  logConnInfo();
+  logconns();
+
+  transport.on("established", function() {
+    let delta = (new Date().getTime() - start) / 1000;
+    logInfo("Connection to %s:%s was established in %ss", host, port, delta);
+
+    transport.on("message", function(command, payload) {
+      let start = new Date().getTime();
+      logDebug(
+        "Got new message '%s' (%s) from %s:%s",
+        command, getsize(payload), host, port);
+      let handler = messageHandlers[command];
+      if (!handler) {
+        return logWarn(
+          "Skip unknown message '%s' from %s:%s",
+          command, host, port);
+      }
+
+      // Process message.
+      // FIXME(Kagami): Timing attack mitigation.
+      try {
+        handler({transport, host, port, command, payload});
+      } catch(err) {
+        return logWarn(
+          "Failed to process message '%s' (%s) from %s:%s",
+          command, err.message, host, port);
+      }
+
+      let delta = (new Date().getTime() - start) / 1000;
+      logDebug(
+        "Message '%s' from %s:%s was successfully processed in %ss",
+        command, host, port, delta);
+    });
+  });
+
+  transport.on("error", function(err) {
+    logDebug("Connection error (%s) from %s:%s", err.message, host, port);
+  });
+
   transport.on("close", function() {
     logInfo("Connection to %s:%s was closed", host, port);
     delete connected[host];
-    logConnInfo();
+    logconns();
   });
 }
+
+// NOTE(Kagami): We need hoisting to use it in `setupTransport` function
+// above.
+var messageHandlers = {
+  error: function({payload, host, port}) {
+    // Just display incoming error message.
+    let decoded = messages.error.decodePayload(payload);
+    let text = `Got error message with type ${decoded.fatal} `;
+    text += `from ${host}:${port}: ${decoded.errorText}`;
+    if (decoded.banTime) {
+      text += `; ban time is ${decoded.banTime}s`;
+    }
+    if (decoded.vector) {
+      let hash = decoded.vector.toString("hex");
+      text += `; this concerns inventory entry ${hash}`;
+    }
+    logWarn(text);
+  },
+  ping: function({transport}) {
+    transport.send("pong");
+  },
+  addr: function({payload}) {
+    let decoded = messages.addr.decodePayload(payload);
+    logDebug("Got %s network address(es)", decoded.addrs.length);
+  },
+  inv: function() {
+  },
+  getdata: function() {
+  },
+  object: function() {
+  },
+};
