@@ -21,7 +21,7 @@ Options:
   -c, --config   Config path          [default: "${CONFIG_PATH}"]
   -h, --help     Show help
   -v, --version  Show version number
-  -d, --debug    Enable extra debug
+  -g, --debug    Enable extra debug
 `;
 // NOTE(Kagami): Imply stream number 1 by default to simplify things. We
 // may introduce third argument indicating stream number in future.
@@ -75,7 +75,7 @@ export default conf;
 export function initSync() {
   // Basic CLI boilerplate.
   let argv = parseArgs(process.argv.slice(2), {
-    alias: {c: "config", v: "version", h: "help", d: "debug"},
+    alias: {c: "config", v: "version", h: "help", g: "debug"},
     boolean: ["v", "h", "t"],
     default: {c: CONFIG_PATH},
   });
