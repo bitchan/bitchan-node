@@ -2,7 +2,7 @@
 
 [![NPM](https://nodei.co/npm/bitchan-node.png)](https://www.npmjs.com/package/bitchan-node)
 
-**NOTE: bitchan-node is in early alpha and may contain a lot of bugs. So it is recommended to use only trusted peer mode for a moment (see [example config](etc/bitchan.yaml.example))**
+**NOTE: bitchan-node is in early alpha and may contain a lot of bugs. So it is recommended to use only trusted peer mode for a moment (see [example config](etc/bitchan.yaml.example)).**
 
 bitchan/Bitmessage client for Node.js.
 
