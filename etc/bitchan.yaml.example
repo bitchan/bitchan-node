@@ -28,8 +28,9 @@
 # you trust a node on your local network and want to sync to it quickly.
 # Disallows incoming connections. Disables the built-in timing attack
 # mitigation mechanism. (This is the same as PyBitmessage setting.)
-# Has format ["host", port]. Disabled by default.
-#tcp-trusted-peer:
+# Has format ["host", port]. Connects to the trusted peer at localhost
+# by default.
+#tcp-trusted-peer: ["localhost", 8444]
 
 # WebSocket listening settings.
 # WebSocket server used to proxy web-client messages into Bitmessage

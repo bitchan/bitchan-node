@@ -59,7 +59,7 @@ export const conf = convict({
   "tcp-port": {default: 8444, format: "port"},
   "tcp-seeds": {default: DEFAULT_SEEDS},
   "tcp-dns-seeds": {default: DEFAULT_DNS_SEEDS},
-  "tcp-trusted-peer": {default: null, format: "*"},
+  "tcp-trusted-peer": {default: ["localhost", 8444], format: "*"},
   "ws-host": {default: "0.0.0.0"},
   "ws-port": {default: 18444, format: "port"},
   "storage-backend": {default: "sqlite", format: ["sqlite", "pg"]},

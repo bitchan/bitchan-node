@@ -2,11 +2,11 @@
 
 [![NPM](https://nodei.co/npm/bitchan-node.png)](https://www.npmjs.com/package/bitchan-node)
 
-**NOTE: bitchan-node is in early alpha and may contain a lot of bugs. So it is recommended to use only trusted peer mode for a moment (see [example config](etc/bitchan.yaml.example)).**
+**NOTE: bitchan-node is in early alpha and may contain a lot of bugs. So it is recommended to use only trusted peer mode for a moment.**
 
-bitchan/Bitmessage client for Node.js.
+bitchan and Bitmessage client for Node.js.
 
-Works as a common node in the Bitmessage network and also provides WebSocket gateway for [bitchan web clients](https://github.com/bitchan/bitchan-web). Read more about bitchan [at the wiki](https://github.com/bitchan/meta/wiki).
+Works as a common node in the [Bitmessage network](https://bitmessage.org/wiki/Main_Page) and also provides WebSocket gateway for [bitchan web clients](https://github.com/bitchan/bitchan-web). Read more about bitchan [at the wiki](https://github.com/bitchan/meta/wiki).
 
 ## Usage
 
@@ -17,18 +17,21 @@ $ [sudo] npm install -g bitchan-node
 $ bitchan
 ```
 
-It will automatically create default config at `~/.bitchan/bitchan.yaml`
-and run `bitchan-node` with TCP server at 8444 port and WebSocket server
-at 18444. By default SQLite database will be used to store Bitmessage
-objects at `~/.bitchan/bitchan.db`. Logs will be placed at
-`~/.bitchan/bitchan.log`. (Note: Windows equivalent for `~/.bitchan` is
-`%APPDATA%/bitchan`.)
+It will automatically create [default config](etc/bitchan.yaml.example)
+at `~/.bitchan/bitchan.yaml` and run `bitchan-node` in a trusted peer
+mode. Trusted peer is located at localhost:8444 by default (if you have
+PyBitmessage running at the same computer, most probably it will listen
+here). WebSocket server will listen at 18444. By default SQLite database
+will be used to store Bitmessage objects at `~/.bitchan/bitchan.db`.
+Logs will be placed at `~/.bitchan/bitchan.log`.
 
 To run `bitchan-node` in a background you may either use
 [forever utility](https://www.npmjs.com/package/forever) or some sort of
 terminal multiplexing/nohup.
 
 ### With deb package
+
+*TODO*
 
 ## License
 
