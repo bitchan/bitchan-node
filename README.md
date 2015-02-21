@@ -1,6 +1,4 @@
-# bitchan-node [![Build Status](https://travis-ci.org/bitchan/bitchan-node.svg?branch=master)](https://travis-ci.org/bitchan/bitchan-node)
-
-[![NPM](https://nodei.co/npm/bitchan-node.png)](https://www.npmjs.com/package/bitchan-node)
+# bitchan-node [![Build Status](https://travis-ci.org/bitchan/bitchan-node.svg?branch=master)](https://travis-ci.org/bitchan/bitchan-node) [![npm version](https://badge.fury.io/js/bitchan-node.svg)](http://badge.fury.io/js/bitchan-node)
 
 **NOTE: bitchan-node is in early alpha and may contain a lot of bugs. So it is recommended to use only trusted peer mode for a moment.**
 
