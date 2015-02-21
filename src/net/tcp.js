@@ -14,6 +14,7 @@ const messages = bitmessage.messages;
 const logDebug = getLogger("TCP", "debug");
 const logInfo = getLogger("TCP", "info");
 const logWarn = getLogger("TCP", "warn");
+const logError = getLogger("TCP", "error");
 
 export function init() {
   return new Promise(function(resolve) {
@@ -110,6 +111,9 @@ function listenIncoming(opts) {
     }
     setupTransport({transport, host, port});
   });
+  server.on("error", function(err) {
+    logError("Server error: %s", err.message);
+  });
   server.listen(opts.port, opts.host);
   logInfo("Listening at %s:%s", opts.host, opts.port);
 }
@@ -148,7 +152,7 @@ function setupTransport({transport, host, port}) {
         command, getSize(payload), host, port);
       let handler = messageHandlers[command];
       if (!handler) {
-        return logInfo(
+        return logWarn(
           "Skip unknown message '%s' from %s:%s",
           command, host, port);
       }
@@ -159,8 +163,8 @@ function setupTransport({transport, host, port}) {
         handler({transport, host, port, command, payload});
       } catch(err) {
         return logWarn(
-          "Failed to process message '%s' (%s) from %s:%s",
-          command, err.message, host, port);
+          "Failed to process message '%s' from %s:%s: %s",
+          command, host, port, err.message);
       }
 
       let delta = (new Date().getTime() - start) / 1000;
@@ -170,8 +174,14 @@ function setupTransport({transport, host, port}) {
     });
   });
 
+  transport.on("warning", function(err) {
+    logWarn("Connection warning from %s:%s: %s", host, port, err.message);
+  });
+
   transport.on("error", function(err) {
-    logDebug("Connection error (%s) from %s:%s", err.message, host, port);
+    // NOTE(Kagami): Debug level here because we will get "close" event
+    // right after it anyway.
+    logDebug("Connection error from %s:%s: %s", host, port, err.message);
   });
 
   transport.on("close", function() {
@@ -185,7 +195,9 @@ function setupTransport({transport, host, port}) {
 // `setupTransport` function above.
 var messageHandlers = {
   error: function({payload, host, port}) {
-    // Just display incoming error message.
+    // TODO(Kagami): Currently we just display incoming error message
+    // (as PyBitmessage). We may want to take into account some of this
+    // data in the future.
     let decoded = messages.error.decodePayload(payload);
     let type = messages.error.type2str(decoded.fatal);
     let text = `Got error message with type ${type} `;
@@ -201,7 +213,15 @@ var messageHandlers = {
   },
 
   ping: function({transport}) {
+    // Protocol doesn't require answer to the "ping" messages but we
+    // copy PyBitmessage behavior anyway just in case.
     transport.send("pong");
+  },
+
+  pong: function() {
+    // PyBitmessage sends a "pong" message if it hasn't sent anything
+    // else in the last five minutes. We receive this message but do
+    // nothing with it.
   },
 
   addr: function({payload}) {
