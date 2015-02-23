@@ -46,7 +46,7 @@
 #storage-backend: sqlite
 
 # SQLite storage settings.
-#sqlite-db-path: /var/lib/bitchan/bitchan.db
+#sqlite-db-path: ~/.bitchan/bitchan.db
 
 # PostgreSQL storage settings.
 #pg-host: 127.0.0.1
@@ -64,6 +64,6 @@
 # a list of transport settings.
 #logging:
 #  file:
-#    - {filename: /var/log/bitchan/bitchan.log, level: warn, json: false}
+#    - {filename: ~/.bitchan/bitchan.log, level: warn, json: false}
 #  console:
 #    - {level: info, timestamp: true, colorize: true}

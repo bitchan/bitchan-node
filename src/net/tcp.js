@@ -18,8 +18,10 @@ const logError = getLogger("TCP", "error");
 
 export function init() {
   return new Promise(function(resolve) {
-    // TODO(Kagami): Hardcode stream to connect to by default. We may
-    // need better stream support in future.
+    if (conf.get("tcp-trusted-peer")) {
+      logInfo("Trusted peer mode enabled, incoming connections are forbidden");
+    }
+    // NOTE(Kagami): Use stream 1 only for a moment.
     runOutcomingLoop({stream: DEFAULT_STREAM, limit: getOutcomingLimit()});
     if (!conf.get("tcp-trusted-peer")) {
       listenIncoming({

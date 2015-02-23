@@ -8,7 +8,7 @@ import conf from "../config";
 import * as storage from "../storage";
 import {DEFAULT_STREAM, getLogger} from "./common";
 
-const logDebug = getLogger("known-nodes", "debug");
+const logInfo = getLogger("known-nodes", "info");
 
 const SERVICES_BUF = bitmessage.structs
   .ServicesBitfield()
@@ -34,9 +34,7 @@ export function init() {
     return storage.knownNodes.isEmpty(trx).then(function(empty) {
       if (!empty) { return; }
       var nodes = conf.get("tcp-seeds").map(getSeedObj);
-      logDebug(
-        "Store is empty, add %s hardcoded bootstrap nodes",
-        nodes.length);
+      logInfo("Store is empty, add %s hardcoded bootstrap nodes", nodes.length);
       return storage.knownNodes.add(trx, nodes);
     }).then(function() {
       // Copy PyBitmessage behavior here, don't lookup seeds via DNS for
@@ -45,7 +43,7 @@ export function init() {
       var transport = new TcpTransport({dnsSeeds: conf.get("tcp-dns-seeds")});
       return transport.bootstrapDns().then(function(nodes) {
         nodes = nodes.map(getSeedObj);
-        logDebug("Add %s DNS bootstrap nodes", nodes.length);
+        logInfo("Add %s DNS bootstrap nodes", nodes.length);
         return storage.knownNodes.add(trx, nodes);
       });
     });
