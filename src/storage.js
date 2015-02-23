@@ -43,34 +43,26 @@ export function init() {
 }
 
 function initSchema() {
-  return knex.schema.hasTable("inventory").then(function(exists) {
-    if (exists) { return; }
-    return knex.schema.createTable("inventory", function(table) {
-      table.string("vector", 32).primary();
-      table.binary("payload").notNullable();  // Message payload data
-      table.timestamp("expires").notNullable();
-      table.integer("type").notNullable();  // Object type, 0-3 currently
-      table.integer("stream").notNullable();
-      table.string("from");  // Sender's BM address
-    });
-  }).then(function() {
-    return knex.schema.hasTable("known_nodes");
-  }).then(function(exists) {
-    if (exists) { return; }
-    // NOTE(Kagami): knex doesn't have support for "ON CONFLICT" so we
-    // are using raw SQL here. See
-    // <https://github.com/tgriesser/knex/issues/694> for details.
-    return knex.schema.raw(`
-      CREATE TABLE known_nodes (
-        host VARCHAR(39) NOT NULL,
-        port INTEGER NOT NULL,
-        stream INTEGER NOT NULL,
-        services BLOB NOT NULL,
-        last_active DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(host, port, stream) ON CONFLICT REPLACE
-      )
-    `);
-  });
+  return knex.schema.createTableIfNotExists("inventory", function(table) {
+    table.string("vector", 32).primary();
+    table.binary("payload").notNullable();  // Message payload data
+    table.timestamp("expires").notNullable();
+    table.integer("type").notNullable();  // Object type, 0-3 currently
+    table.integer("stream").notNullable();
+  })
+  // NOTE(Kagami): knex doesn't have support for "ON CONFLICT" so we
+  // are using raw SQL here. See
+  // <https://github.com/tgriesser/knex/issues/694> for details.
+  // Beware to not put invalid SQL for PostgreSQL or SQLite.
+  .raw(`
+    CREATE TABLE IF NOT EXISTS known_nodes (
+      host VARCHAR(39) NOT NULL,
+      port INTEGER NOT NULL,
+      stream INTEGER NOT NULL,
+      services BLOB NOT NULL,
+      last_active DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(host, port, stream) ON CONFLICT REPLACE
+    )`);
 }
 
 /** Start a new transaction. */
@@ -124,6 +116,9 @@ export let knownNodes = {
       .from("known_nodes")
       .where({stream})
       .whereNotIn("host", excludeHosts)
+      // NOTE(Kagami): Beware that RANDOM() is only valid for PostgreSQL
+      // and SQLite. See <https://stackoverflow.com/a/1209946>,
+      // <https://stackoverflow.com/a/2279723> for details.
       .orderByRaw("RANDOM()")
       .limit(1)
       .then(function(rows) {
