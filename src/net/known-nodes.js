@@ -17,13 +17,13 @@ const SERVICES_BUF = bitmessage.structs
 
 // XXX(Kagami): We may want to fix bitmessage bootstrap API so it will
 // return object with "host", "port" and "stream" properties instead.
-function getnodeobj(node) {
+function getSeedObj(node) {
   return {
     host: node[0],
     port: node[1],
     stream: node[2] || DEFAULT_STREAM,
     services: SERVICES_BUF,
-    // zero timestamp marks this node as not-advertiseable.
+    // Zero timestamp to mark seed node as not-advertiseable.
     last_active: 0,
   };
 }
@@ -33,11 +33,10 @@ export function init() {
 
     return storage.knownNodes.isEmpty(trx).then(function(empty) {
       if (!empty) { return; }
-      var nodes = conf.get("tcp-seeds").map(getnodeobj);
+      var nodes = conf.get("tcp-seeds").map(getSeedObj);
       logDebug(
         "Store is empty, add %s hardcoded bootstrap nodes",
-        nodes.length
-      );
+        nodes.length);
       return storage.knownNodes.add(trx, nodes);
     }).then(function() {
       // Copy PyBitmessage behavior here, don't lookup seeds via DNS for
@@ -45,7 +44,7 @@ export function init() {
       if (conf.get("tcp-trusted-peer")) { return; }
       var transport = new TcpTransport({dnsSeeds: conf.get("tcp-dns-seeds")});
       return transport.bootstrapDns().then(function(nodes) {
-        nodes = nodes.map(getnodeobj);
+        nodes = nodes.map(getSeedObj);
         logDebug("Add %s DNS bootstrap nodes", nodes.length);
         return storage.knownNodes.add(trx, nodes);
       });

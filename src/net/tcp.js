@@ -114,6 +114,10 @@ function listenIncoming(opts) {
   server.on("error", function(err) {
     logError("Server error: %s", err.message);
   });
+  server.on("close", function() {
+    logError("Server was unexpectedly closed. Exiting.");
+    process.exit(1);
+  });
   server.listen(opts.port, opts.host);
   logInfo("Listening at %s:%s", opts.host, opts.port);
 }
