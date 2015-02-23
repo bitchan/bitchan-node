@@ -22,7 +22,11 @@ export function init() {
       logInfo("Trusted peer mode enabled, incoming connections are forbidden");
     }
     // NOTE(Kagami): Use stream 1 only for a moment.
-    runOutcomingLoop({stream: DEFAULT_STREAM, limit: getOutcomingLimit()});
+    runOutcomingLoop({
+      limit: getOutcomingLimit(),
+      stream: DEFAULT_STREAM,
+      port: conf.get("tcp-port"),
+    });
     if (!conf.get("tcp-trusted-peer")) {
       listenIncoming({
         stream: DEFAULT_STREAM,
@@ -64,11 +68,12 @@ function getNode(stream) {
   }
 }
 
-function createTransport() {
+function createTransport({stream, port}) {
   return new TcpTransport({
     services: MY_SERVICES,
     userAgent: MY_USER_AGENT,
-    port: conf.get("tcp-port"),
+    streamNumbers: [stream],
+    port: port,
   });
 }
 
@@ -84,7 +89,7 @@ function runOutcomingLoop(opts) {
     // query.
     if (!isConnected(host)) {
       logInfo("Connecting to %s:%s", host, port);
-      let transport = createTransport();
+      let transport = createTransport({stream: opts.stream, port: opts.port});
       outcomingNum++;
       transport.on("close", function() {
         outcomingNum--;
@@ -102,7 +107,7 @@ function runOutcomingLoop(opts) {
 }
 
 function listenIncoming(opts) {
-  let server = createTransport();
+  let server = createTransport({stream: opts.stream, port: opts.port});
   // TODO(Kagami): Pass new connection info as an object?
   server.on("connection", function(transport, host, port) {
     logInfo("Got new connection from %s:%s", host, port);
@@ -185,9 +190,7 @@ function setupTransport({transport, host, port}) {
   });
 
   transport.on("error", function(err) {
-    // NOTE(Kagami): Debug level here because we will get "close" event
-    // right after it anyway.
-    logDebug("Connection error from %s:%s: %s", host, port, err.message);
+    logWarn("Connection error from %s:%s: %s", host, port, err.message);
   });
 
   transport.on("close", function() {
