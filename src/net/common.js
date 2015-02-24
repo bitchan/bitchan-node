@@ -13,11 +13,6 @@ export const MY_USER_AGENT = bitmessage.UserAgent.encodeSelfWith({
   version: pkg.version,
 });
 
-export const MY_SERVICES = bitmessage.structs.ServicesBitfield().set([
-  bitmessage.structs.ServicesBitfield.NODE_NETWORK,
-  bitmessage.structs.ServicesBitfield.NODE_GATEWAY,
-]);
-
 // Simple logger factory since it's easier in use than custom loggers.
 export function getLogger(prefix, level) {
   prefix = `[${prefix}] `;

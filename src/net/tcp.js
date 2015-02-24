@@ -8,9 +8,10 @@ import bitmessage from "bitmessage";
 import TcpTransport from "bitmessage/lib/net/tcp";
 import conf from "../config";
 import * as storage from "../storage";
-import {DEFAULT_STREAM, MY_SERVICES, MY_USER_AGENT, getLogger} from "./common";
+import {DEFAULT_STREAM, MY_USER_AGENT, getLogger} from "./common";
 
 const messages = bitmessage.messages;
+const ServicesBitfield = bitmessage.structs.ServicesBitfield;
 const logDebug = getLogger("TCP", "debug");
 const logInfo = getLogger("TCP", "info");
 const logWarn = getLogger("TCP", "warn");
@@ -19,7 +20,7 @@ const logError = getLogger("TCP", "error");
 export function init() {
   return new Promise(function(resolve) {
     if (conf.get("tcp-trusted-peer")) {
-      logInfo("Trusted peer mode enabled, incoming connections are forbidden");
+      logInfo("Trusted peer mode, incoming connections are forbidden");
     }
     // NOTE(Kagami): Use stream 1 only for a moment.
     runOutcomingLoop({
@@ -70,9 +71,12 @@ function getNode(stream) {
 
 function createTransport({stream, port}) {
   return new TcpTransport({
-    services: MY_SERVICES,
+    services: ServicesBitfield().set([
+      ServicesBitfield.NODE_NETWORK,
+      ServicesBitfield.NODE_GATEWAY,
+    ]),
     userAgent: MY_USER_AGENT,
-    streamNumbers: [stream],
+    streams: [stream],
     port: port,
   });
 }
@@ -152,9 +156,11 @@ function setupTransport({transport, host, port}) {
   connected[host] = transport;
   logConnInfo();
 
-  transport.on("established", function() {
+  transport.on("established", function(version) {
     let delta = (new Date().getTime() - start) / 1000;
-    logInfo("Connection to %s:%s was established in %ss", host, port, delta);
+    logInfo(
+      "Connection to %s:%s (%s) was established in %ss",
+      host, port, version.userAgent, delta);
 
     transport.on("message", function(command, payload) {
       let start = new Date().getTime();
@@ -207,16 +213,15 @@ var messageHandlers = {
     // TODO(Kagami): Currently we just display incoming error message
     // (as PyBitmessage). We may want to take into account some of this
     // data in the future.
-    let decoded = messages.error.decodePayload(payload);
-    let type = messages.error.type2str(decoded.fatal);
+    let error = messages.error.decodePayload(payload);
+    let type = messages.error.type2str(error.type);
     let text = `Got error message with type ${type} `;
-    text += `from ${host}:${port}: ${decoded.errorText}`;
-    if (decoded.banTime) {
-      text += `; ban time is ${decoded.banTime}s`;
+    text += `from ${host}:${port}: ${error.errorText}`;
+    if (error.banTime) {
+      text += `; ban time is ${error.banTime}s`;
     }
-    if (decoded.vector) {
-      let hash = decoded.vector.toString("hex");
-      text += `; this concerns inventory entry ${hash}`;
+    if (error.vector) {
+      text += `; this concerns inventory entry ${error.vector.toString("hex")}`;
     }
     logWarn(text);
   },
@@ -234,8 +239,8 @@ var messageHandlers = {
   },
 
   addr: function({payload}) {
-    let decoded = messages.addr.decodePayload(payload);
-    logDebug("Got %s network address(es)", decoded.addrs.length);
+    let addr = messages.addr.decodePayload(payload);
+    logDebug("Got %s network address(es)", addr.addrs.length);
   },
 
   inv: function() {
