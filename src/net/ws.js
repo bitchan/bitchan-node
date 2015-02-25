@@ -2,7 +2,7 @@
  * WebSocket networking.
  */
 
-import WsTransport from "bitmessage/lib/net/ws";
+import {WsTransport} from "bitmessage-transports";
 import conf from "../config";
 import {DEFAULT_STREAM, MY_USER_AGENT, getLogger} from "./common";
 

@@ -3,7 +3,7 @@
  */
 
 import bitmessage from "bitmessage";
-import TcpTransport from "bitmessage/lib/net/tcp";
+import {TcpTransport} from "bitmessage-transports";
 import conf from "../config";
 import * as storage from "../storage";
 import {DEFAULT_STREAM, getLogger} from "./common";
