@@ -7,8 +7,8 @@
 import bitmessage from "bitmessage";
 import {TcpTransport} from "bitmessage-transports";
 import conf from "../config";
-import * as storage from "../storage";
 import {DEFAULT_STREAM, MY_USER_AGENT, getLogger} from "./common";
+import * as knownNodes from "./known-nodes";
 
 const messages = bitmessage.messages;
 const ServicesBitfield = bitmessage.structs.ServicesBitfield;
@@ -65,7 +65,7 @@ function getNode(stream) {
   } else {
     // TODO(Kagami): Attempted connections list.
     let exclude = Object.keys(connected);
-    return storage.knownNodes.getRandom(null, stream, exclude);
+    return knownNodes.getRandom(stream, exclude);
   }
 }
 
@@ -98,7 +98,7 @@ function runOutcomingLoop(opts) {
       transport.on("close", function() {
         outcomingNum--;
       });
-      setupTransport({transport, host, port});
+      setupTransport({transport, host, port, stream: opts.stream});
       transport.connect(port, host);
     }
     setTimeout(runOutcomingLoop, 100, opts);
@@ -120,7 +120,7 @@ function listenIncoming(opts) {
       transport.close();
       return;
     }
-    setupTransport({transport, host, port});
+    setupTransport({transport, host, port, stream: opts.stream});
   });
   server.on("error", function(err) {
     logError("Server error: %s", err.message);
@@ -151,7 +151,7 @@ function getSize(payload) {
 }
 
 // Setup event handlers for a new incoming/outcoming connection.
-function setupTransport({transport, host, port}) {
+function setupTransport({transport, host, port, stream}) {
   let start = new Date().getTime();
   connected[host] = transport;
   logConnInfo();
@@ -177,7 +177,7 @@ function setupTransport({transport, host, port}) {
       // Process message.
       // FIXME(Kagami): Timing attack mitigation.
       try {
-        handler({transport, host, port, command, payload});
+        handler({transport, host, port, stream, command, payload});
       } catch(err) {
         return logWarn(
           "Failed to process message '%s' from %s:%s: %s",
@@ -238,9 +238,22 @@ var messageHandlers = {
     // nothing with it.
   },
 
-  addr: function({payload}) {
-    let addr = messages.addr.decodePayload(payload);
-    logDebug("Got %s network address(es)", addr.addrs.length);
+  addr: function({payload, stream}) {
+    let addrs = messages.addr.decodePayload(payload).addrs;
+    logDebug("Got %s network address(es)", addrs.length);
+    let acceptedStreams = [stream, stream * 2, stream * 2 + 1];
+    let now = new Date().getTime();
+    addrs = addrs.filter(function(addr) {
+      if (acceptedStreams.indexOf(addr.stream) === -1) {
+        return false;
+      }
+      let delta = (addr.time.getTime() - now) / 1000;
+      if (delta > 10800 || delta < -10800) {
+        return false;
+      }
+      return true;
+    });
+    knownNodes.addAddrs(addrs);
   },
 
   inv: function() {

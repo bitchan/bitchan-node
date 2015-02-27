@@ -62,6 +62,8 @@
 # Currently only file and console transports are available.
 # See <https://github.com/winstonjs/winston#working-with-transports> for
 # a list of transport settings.
+# NOTE: To disable one of default transports pass empty value to it,
+# don't simply remove it.
 #logging:
 #  file:
 #    - {filename: ~/.bitchan/bitchan.log, level: warn, json: false}

@@ -22,6 +22,11 @@ export function init() {
         },
       });
     } else if (backend === "pg") {
+      // NOTE(Kagami): Workaround `count` result as string on
+      // node-postgres. See
+      // <https://github.com/tgriesser/knex/issues/387> for details.
+      let pg = require("pg");
+      pg.types.setTypeParser(20, "text", parseInt);
       knex = createKnex({
         client: "pg",
         debug: conf.get("debug"),
@@ -128,5 +133,17 @@ export let knownNodes = {
           throw new Error("Empty result");
         }
       });
+  },
+
+  /**
+   * Return current count of the nodes in the store.
+   * @param {?Object} trx - Current transaction
+   * @return {Promise.<number>}
+   */
+  count: function(trx) {
+    trx = trx || knex;
+    return trx("known_nodes").count("* as count").then(function(rows) {
+      return rows[0].count;
+    });
   },
 };
