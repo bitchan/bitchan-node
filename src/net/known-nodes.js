@@ -2,6 +2,7 @@
  * Working with known nodes.
  */
 
+import moment from "moment";
 import bitmessage from "bitmessage";
 import {TcpTransport} from "bitmessage-transports";
 import conf from "../config";
@@ -69,7 +70,7 @@ export function addAddrs(addrs) {
       let canAdd = 20000 - curNodesCount;
       if (canAdd <= 0) { return; }
       let nodes = addrs.slice(0, canAdd).map(function(addr) {
-        // Fix object structure to store in the DB.
+        // Fix object structure to save in the store.
         let node = Object.assign({}, addr);
         // TODO(Kagami): Do we want to rename `last_active` field?
         node.last_active = popkey(node, "time");
@@ -82,6 +83,39 @@ export function addAddrs(addrs) {
 
   }).catch(function(err) {
     logError("Error in `knownNodes.addAddrs`: %s", err.message);
+    throw err;
+  });
+}
+
+/** Find nodes for the `addr` message. */
+export function getAddrs(stream) {
+  let after = moment().subtract(3, 'hours').toDate();
+  let nodes = [];
+  // We are going to share maximum number of 1000 addrs with our peer.
+  // 500 from this stream, 250 from the left child stream, and 250 from
+  // the right child stream.
+  return storage.transaction(function(trx) {
+
+    return storage.knownNodes.get(trx, stream, after, 500)
+    .then(function(ns) {
+      nodes = nodes.concat(ns);
+      return storage.knownNodes.get(trx, stream*2, after, 250);
+    }).then(function(ns) {
+      nodes = nodes.concat(ns);
+      return storage.knownNodes.get(trx, stream*2+1, after, 250);
+    }).then(function(ns) {
+      nodes = nodes.concat(ns);
+      return nodes.map(function(node) {
+        // TODO(Kagami): For some reason knex returns millisecond
+        // timestamp number instead of Date object. File a bug to knex's
+        // bugtracker.
+        node.time = new Date(node.last_active);
+        return node;
+      });
+    });
+
+  }).catch(function(err) {
+    logError("Error in `knownNodes.getAddrs`: %s", err.message);
     throw err;
   });
 }

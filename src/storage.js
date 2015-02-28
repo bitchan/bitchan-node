@@ -3,6 +3,8 @@
  * same API. While for now it provides only SQL backends, this is not
  * mandatory and non-SQL backends may be added in future.
  */
+// XXX(Kagami): Think through the API: should we always use hash for the
+// input arguments?
 
 import createKnex from "knex";
 import conf from "./config";
@@ -145,5 +147,23 @@ export let knownNodes = {
     return trx("known_nodes").count("* as count").then(function(rows) {
       return rows[0].count;
     });
+  },
+
+  /**
+   * Select bunch of the known nodes.
+   * @param {?Object} trx - Current transaction
+   * @param {number[]} stream - Stream number of the nodes
+   * @param {Date} after - Nodes shouldn't be older than this time
+   * @param {number} limit - Maximum number of resulting nodes
+   * @return {Promise.<Object[]>}
+   */
+  get: function(trx, stream, after, limit) {
+    trx = trx || knex;
+    return trx
+      .select()
+      .from("known_nodes")
+      .where({stream})
+      .where("last_active", ">=", after)
+      .limit(limit);
   },
 };

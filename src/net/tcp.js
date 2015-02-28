@@ -98,7 +98,7 @@ function runOutcomingLoop(opts) {
       transport.on("close", function() {
         outcomingNum--;
       });
-      setupTransport({transport, host, port, stream: opts.stream});
+      initTransport({transport, host, port, stream: opts.stream});
       transport.connect(port, host);
     }
     setTimeout(runOutcomingLoop, 100, opts);
@@ -120,7 +120,7 @@ function listenIncoming(opts) {
       transport.close();
       return;
     }
-    setupTransport({transport, host, port, stream: opts.stream});
+    initTransport({transport, host, port, stream: opts.stream});
   });
   server.on("error", function(err) {
     logError("Server error: %s", err.message);
@@ -151,7 +151,7 @@ function getSize(payload) {
 }
 
 // Setup event handlers for a new incoming/outcoming connection.
-function setupTransport({transport, host, port, stream}) {
+function initTransport({transport, host, port, stream}) {
   let start = new Date().getTime();
   connected[host] = transport;
   logConnInfo();
@@ -161,6 +161,7 @@ function setupTransport({transport, host, port, stream}) {
     logInfo(
       "Connection to %s:%s (%s) was established in %ss",
       host, port, version.userAgent, delta);
+    sendBigAddr({transport, host, port, stream});
 
     transport.on("message", function(command, payload) {
       let start = new Date().getTime();
@@ -207,7 +208,7 @@ function setupTransport({transport, host, port, stream}) {
 }
 
 // NOTE(Kagami): We need hoisting to use this variable in
-// `setupTransport` function above.
+// `initTransport` function above.
 var messageHandlers = {
   error: function({payload, host, port}) {
     // TODO(Kagami): Currently we just display incoming error message
@@ -241,7 +242,7 @@ var messageHandlers = {
   addr: function({payload, stream}) {
     let addrs = messages.addr.decodePayload(payload).addrs;
     logDebug("Got %s network address(es)", addrs.length);
-    let acceptedStreams = [stream, stream * 2, stream * 2 + 1];
+    let acceptedStreams = [stream, stream*2, stream*2+1];
     let now = new Date().getTime();
     addrs = addrs.filter(function(addr) {
       if (acceptedStreams.indexOf(addr.stream) === -1) {
@@ -265,3 +266,15 @@ var messageHandlers = {
   object: function() {
   },
 };
+
+// Send a huge addr message to our peer. This is only used when we fully
+// establish a connection with a peer.
+function sendBigAddr({transport, host, port, stream}) {
+  knownNodes.getAddrs(stream).then(function(addrs) {
+    logDebug(
+      "Sending %s network address(es) to %s:%s",
+      addrs.length, host, port);
+    let addr = messages.addr.encode(addrs);
+    transport.send(addr);
+  });
+}
