@@ -63,6 +63,7 @@ export function getRandom(stream, excludeHosts) {
 
 /** Add nodes from the `addr` message. */
 export function addAddrs(addrs) {
+  if (!Array.isArray(addrs)) { addrs = [addrs]; }
   if (!addrs.length) { return Promise.resolve(null); }
   return storage.transaction(function(trx) {
 
@@ -72,9 +73,14 @@ export function addAddrs(addrs) {
       let nodes = addrs.slice(0, canAdd).map(function(addr) {
         // Fix object structure to save in the store.
         let node = Object.assign({}, addr);
+        node.stream = node.stream || DEFAULT_STREAM;
+        if (node.services) {
+          node.services = node.services.buffer;
+        } else {
+          node.services = SERVICES_BUF;
+        }
         // TODO(Kagami): Do we want to rename `last_active` field?
-        node.last_active = popkey(node, "time");
-        node.services = node.services.buffer;
+        node.last_active = popkey(node, "time") || new Date();
         return node;
       });
       logInfo("Add %s nodes from addr message", nodes.length);
@@ -89,7 +95,7 @@ export function addAddrs(addrs) {
 
 /** Find nodes for the `addr` message. */
 export function getAddrs(stream) {
-  let after = moment().subtract(3, 'hours').toDate();
+  let after = moment().subtract(3, "hours").toDate();
   let nodes = [];
   // We are going to share maximum number of 1000 addrs with our peer.
   // 500 from this stream, 250 from the left child stream, and 250 from

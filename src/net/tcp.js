@@ -18,24 +18,24 @@ const logWarn = getLogger("TCP", "warn");
 const logError = getLogger("TCP", "error");
 
 export function init() {
-  return new Promise(function(resolve) {
-    if (conf.get("tcp-trusted-peer")) {
-      logInfo("Trusted peer mode, incoming connections are forbidden");
-    }
+  return processTrustedPeer(conf.get("tcp-trusted-peer"))
+  .then(function(trustedPeer) {
     // NOTE(Kagami): Use stream 1 only for a moment.
     runOutcomingLoop({
-      limit: getOutcomingLimit(),
+      trustedPeer,
+      limit: getOutcomingLimit(trustedPeer),
       stream: DEFAULT_STREAM,
       port: conf.get("tcp-port"),
     });
-    if (!conf.get("tcp-trusted-peer")) {
+    if (trustedPeer) {
+      logInfo("Trusted peer mode, incoming connections are forbidden");
+    } else {
       listenIncoming({
         stream: DEFAULT_STREAM,
         host: conf.get("tcp-host"),
         port: conf.get("tcp-port"),
       });
     }
-    resolve();
   });
 }
 
@@ -49,21 +49,31 @@ function isConnected(host) {
   return Object.prototype.hasOwnProperty.call(connected, host);
 }
 
+function processTrustedPeer(cfgTrustedPeer) {
+  return new Promise(function(resolve) {
+    let peerp = null;
+    if (cfgTrustedPeer) {
+      let trustedPeer = {host: cfgTrustedPeer[0], port: cfgTrustedPeer[1]};
+      // TODO(Kagami): Fix log message?
+      peerp = knownNodes.addAddrs(trustedPeer).then(function() {
+        return trustedPeer;
+      });
+    }
+    resolve(peerp);
+  });
+}
+
 // Return limit of outcoming connections.
-function getOutcomingLimit() {
-  return conf.get("tcp-trusted-peer") ? 1 : 8;
+function getOutcomingLimit(trustedPeer) {
+  return trustedPeer ? 1 : 8;
 }
 
 // Return a promise that contains random known node.
-function getNode(stream) {
-  let trustedPeer = conf.get("tcp-trusted-peer");
+function getNode({stream, trustedPeer}) {
+  // TODO(Kagami): Attempted connections list.
   if (trustedPeer) {
-    return Promise.resolve({
-      host: trustedPeer[0],
-      port: trustedPeer[1],
-    });
+    return Promise.resolve(trustedPeer);
   } else {
-    // TODO(Kagami): Attempted connections list.
     let exclude = Object.keys(connected);
     return knownNodes.getRandom(stream, exclude);
   }
@@ -86,7 +96,7 @@ function runOutcomingLoop(opts) {
     return setTimeout(runOutcomingLoop, 100, opts);
   }
 
-  getNode(opts.stream).then(function({host, port}) {
+  getNode(opts).then(function({host, port}) {
     // Check whether we are already connected to the returned node's
     // host once more time (`getNode` also filters connected nodes) to
     // protect ourself against race condition because of async SQL
@@ -271,6 +281,7 @@ var messageHandlers = {
 // establish a connection with a peer.
 function sendBigAddr({transport, host, port, stream}) {
   knownNodes.getAddrs(stream).then(function(addrs) {
+    if (!addrs.length) { return; }
     logDebug(
       "Sending %s network address(es) to %s:%s",
       addrs.length, host, port);
