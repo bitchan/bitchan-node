@@ -9,3 +9,9 @@ exports.popkey = function(obj, key) {
   delete obj[key];
   return value;
 };
+
+exports.objectValues = function(obj) {
+  return Object.keys(obj).map(function(key) {
+    return obj[key];
+  });
+};

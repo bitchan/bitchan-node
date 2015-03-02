@@ -47,7 +47,7 @@ export function init() {
       var transport = new TcpTransport({dnsSeeds: conf.get("tcp-dns-seeds")});
       return transport.bootstrapDns().then(function(nodes) {
         nodes = nodes.map(getSeedObj);
-        logInfo("Add %s DNS bootstrap nodes", nodes.length);
+        logInfo("Add %s DNS bootstrap node(s)", nodes.length);
         return storage.knownNodes.add(trx, nodes);
       });
     });
@@ -83,7 +83,7 @@ export function addAddrs(addrs) {
         node.last_active = popkey(node, "time") || new Date();
         return node;
       });
-      logInfo("Add %s nodes from addr message", nodes.length);
+      logInfo("Add %s known node(s)", nodes.length);
       return storage.knownNodes.add(trx, nodes);
     });
 

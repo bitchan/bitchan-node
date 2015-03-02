@@ -9,6 +9,7 @@ import {TcpTransport} from "bitmessage-transports";
 import conf from "../config";
 import {DEFAULT_STREAM, MY_USER_AGENT, getLogger} from "./common";
 import * as knownNodes from "./known-nodes";
+import {objectValues} from "../util";
 
 const messages = bitmessage.messages;
 const ServicesBitfield = bitmessage.structs.ServicesBitfield;
@@ -54,7 +55,6 @@ function processTrustedPeer(cfgTrustedPeer) {
     let peerp = null;
     if (cfgTrustedPeer) {
       let trustedPeer = {host: cfgTrustedPeer[0], port: cfgTrustedPeer[1]};
-      // TODO(Kagami): Fix log message?
       peerp = knownNodes.addAddrs(trustedPeer).then(function() {
         return trustedPeer;
       });
@@ -171,6 +171,7 @@ function initTransport({transport, host, port, stream}) {
     logInfo(
       "Connection to %s:%s (%s) was established in %ss",
       host, port, version.userAgent, delta);
+    broadcastAddr({host, port, stream, version});
     sendBigAddr({transport, host, port, stream});
 
     transport.on("message", function(command, payload) {
@@ -251,7 +252,7 @@ var messageHandlers = {
 
   addr: function({payload, stream}) {
     let addrs = messages.addr.decodePayload(payload).addrs;
-    logDebug("Got %s network address(es)", addrs.length);
+    logDebug("Got %s filtered network address(es)", addrs.length);
     let acceptedStreams = [stream, stream*2, stream*2+1];
     let now = new Date().getTime();
     addrs = addrs.filter(function(addr) {
@@ -287,5 +288,25 @@ function sendBigAddr({transport, host, port, stream}) {
       addrs.length, host, port);
     let addr = messages.addr.encode(addrs);
     transport.send(addr);
+  });
+}
+
+// Broadcast known node to all peers.
+function broadcastAddr({host, port, stream, version}) {
+  let addr = messages.addr.encode([{
+    host,
+    port,
+    stream,
+    services: version.services,
+  }]);
+  logDebug("Broadcast %s:%s addr to all connected peers", host, port);
+  broadcast(addr);
+}
+
+// Broadcast given message to all connected transports.
+// FIXME(Kagami): Timing attack mitigation.
+function broadcast(...args) {
+  objectValues(connected).forEach(function(transport) {
+    transport.send(...args);
   });
 }
