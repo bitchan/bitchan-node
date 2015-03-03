@@ -111,6 +111,20 @@ export let knownNodes = {
   },
 
   /**
+   * Update one or several nodes in the store.
+   * @param {?Object} trx - Current transaction
+   * @param {Object} query - Query info
+   * @param {Object} data - Data to set
+   * @return {Promise.<number>} Number of updated nodes
+   */
+  update: function(trx, query, data) {
+    trx = trx || knex;
+    return trx("known_nodes")
+      .where(query)
+      .update(data);
+  },
+
+  /**
    * Return random node for the given stream number.
    * @param {?Object} trx - Current transaction
    * @param {number} stream - Stream number of the node

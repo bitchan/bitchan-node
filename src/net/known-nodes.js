@@ -8,7 +8,7 @@ import {TcpTransport} from "bitmessage-transports";
 import conf from "../config";
 import * as storage from "../storage";
 import {DEFAULT_STREAM, getLogger} from "./common";
-import {popkey} from "../util";
+import {assert, popkey} from "../util";
 
 const logInfo = getLogger("known-nodes", "info");
 const logError = getLogger("known-nodes", "error");
@@ -106,8 +106,8 @@ export function addAddrs(addrs, stream) {
         return [];
       }
       return storage.knownNodes.count(trx).then(function(curNodesCount) {
-        // Save reference because we are going to fix insert array (not
-        // in-place).
+        // Save reference to array because we are going to change it
+        // length (not in-place).
         let addrsToReturn = addrsToInsert;
         let canInsert = 20000 - curNodesCount;
         if (canInsert <= 0) {
@@ -127,7 +127,9 @@ export function addAddrs(addrs, stream) {
           node.last_active = popkey(node, "time");
           return node;
         });
-        logInfo("Add/update %s known node(s)", nodes.length);
+        logInfo(
+          "Add/update %s known node(s) (%s new)",
+          nodes.length, addrsToInsert.length);
         return storage.knownNodes.add(trx, nodes).then(function() {
           return addrsToReturn;
         });
@@ -171,4 +173,15 @@ export function getAddrs(stream) {
     logError("Error in `knownNodes.getAddrs`: %s", err.message);
     throw err;
   });
+}
+
+export function bumpActivity(node) {
+  return storage.knownNodes
+    .update(null, node, {last_active: new Date()})
+    .then(function(updCount) {
+      assert(updCount, `Node ${node.host}:${node.port} wasn't updated`);
+    }).catch(function(err) {
+      logError("Error in `knownNodes.bumpActivity`: %s", err.message);
+      throw err;
+    });
 }

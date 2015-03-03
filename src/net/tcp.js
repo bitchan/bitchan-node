@@ -4,6 +4,7 @@
  * compatible with the rest of network.
  */
 
+import moment from "moment";
 import bitmessage from "bitmessage";
 import {TcpTransport} from "bitmessage-transports";
 import conf from "../config";
@@ -172,6 +173,15 @@ function initTransport({transport, host, port, stream}) {
   connected[host] = transport;
   logConnInfo();
 
+  // Don't update this particular transport too often.
+  let lastUpdate = new Date(0);
+  function bumpActivity() {
+    if (moment().diff(lastUpdate, "minutes") >= 5) {
+      knownNodes.bumpActivity({host, port, stream});
+      lastUpdate = new Date();
+    }
+  }
+
   transport.on("established", function(version) {
     let delta = (new Date().getTime() - start) / 1000;
     logInfo(
@@ -187,6 +197,7 @@ function initTransport({transport, host, port, stream}) {
 
     transport.on("message", function(command, payload) {
       let start = new Date().getTime();
+      bumpActivity();
       logDebug(
         "Got new message '%s' (%s) from %s:%s",
         command, getSize(payload), host, port);
