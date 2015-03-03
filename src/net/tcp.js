@@ -19,9 +19,9 @@ const logWarn = getLogger("TCP", "warn");
 const logError = getLogger("TCP", "error");
 
 export function init() {
-  return processTrustedPeer(conf.get("tcp-trusted-peer"))
+  // NOTE(Kagami): Using only stream 1 as for now.
+  return getTrustedPeer(conf.get("tcp-trusted-peer"), DEFAULT_STREAM)
   .then(function(trustedPeer) {
-    // NOTE(Kagami): Use stream 1 only for a moment.
     runOutcomingLoop({
       trustedPeer,
       limit: getOutcomingLimit(trustedPeer),
@@ -40,6 +40,25 @@ export function init() {
   });
 }
 
+function getTrustedPeer(cfgTrustedPeer, stream) {
+  return new Promise(function(resolve) {
+    let peerp = null;
+    if (cfgTrustedPeer) {
+      let trustedPeer = {
+        host: cfgTrustedPeer[0],
+        port: cfgTrustedPeer[1],
+        stream,
+        services: knownNodes.SERVICES,
+        time: new Date(),
+      };
+      peerp = knownNodes.addAddrs([trustedPeer], stream).then(function() {
+        return trustedPeer;
+      });
+    }
+    resolve(peerp);
+  });
+}
+
 // Dictionary of connected/half-open transports accessed by IP.
 const connected = {};
 // Number of outcoming connections.
@@ -48,19 +67,6 @@ let outcomingNum = 0;
 // Return whether the given host is already connected/half-open.
 function isConnected(host) {
   return Object.prototype.hasOwnProperty.call(connected, host);
-}
-
-function processTrustedPeer(cfgTrustedPeer) {
-  return new Promise(function(resolve) {
-    let peerp = null;
-    if (cfgTrustedPeer) {
-      let trustedPeer = {host: cfgTrustedPeer[0], port: cfgTrustedPeer[1]};
-      peerp = knownNodes.addAddrs(trustedPeer).then(function() {
-        return trustedPeer;
-      });
-    }
-    resolve(peerp);
-  });
 }
 
 // Return limit of outcoming connections.
@@ -171,7 +177,12 @@ function initTransport({transport, host, port, stream}) {
     logInfo(
       "Connection to %s:%s (%s) was established in %ss",
       host, port, version.userAgent, delta);
-    broadcastAddr({host, port, stream, version});
+    broadcastAddrs([{
+      host,
+      port,
+      stream,
+      services: version.services,
+    }]);
     sendBigAddr({transport, host, port, stream});
 
     transport.on("message", function(command, payload) {
@@ -218,6 +229,14 @@ function initTransport({transport, host, port, stream}) {
   });
 }
 
+// Broadcast given message to all connected transports.
+// FIXME(Kagami): Timing attack mitigation.
+function broadcast(...args) {
+  objectValues(connected).forEach(function(transport) {
+    transport.send(...args);
+  });
+}
+
 // NOTE(Kagami): We need hoisting to use this variable in
 // `initTransport` function above.
 var messageHandlers = {
@@ -253,19 +272,7 @@ var messageHandlers = {
   addr: function({payload, stream}) {
     let addrs = messages.addr.decodePayload(payload).addrs;
     logDebug("Got %s filtered network address(es)", addrs.length);
-    let acceptedStreams = [stream, stream*2, stream*2+1];
-    let now = new Date().getTime();
-    addrs = addrs.filter(function(addr) {
-      if (acceptedStreams.indexOf(addr.stream) === -1) {
-        return false;
-      }
-      let delta = (addr.time.getTime() - now) / 1000;
-      if (delta > 10800 || delta < -10800) {
-        return false;
-      }
-      return true;
-    });
-    knownNodes.addAddrs(addrs);
+    knownNodes.addAddrs(addrs, stream).then(broadcastAddrs);
   },
 
   inv: function() {
@@ -283,30 +290,15 @@ var messageHandlers = {
 function sendBigAddr({transport, host, port, stream}) {
   knownNodes.getAddrs(stream).then(function(addrs) {
     if (!addrs.length) { return; }
-    logDebug(
-      "Sending %s network address(es) to %s:%s",
-      addrs.length, host, port);
+    logDebug("Send %s network address(es) to %s:%s", addrs.length, host, port);
     let addr = messages.addr.encode(addrs);
     transport.send(addr);
   });
 }
 
-// Broadcast known node to all peers.
-function broadcastAddr({host, port, stream, version}) {
-  let addr = messages.addr.encode([{
-    host,
-    port,
-    stream,
-    services: version.services,
-  }]);
-  logDebug("Broadcast %s:%s addr to all connected peers", host, port);
+function broadcastAddrs(addrs) {
+  if (!addrs.length) { return; }
+  logDebug("Broadcast %s network address(es)", addrs.length);
+  let addr = messages.addr.encode(addrs);
   broadcast(addr);
-}
-
-// Broadcast given message to all connected transports.
-// FIXME(Kagami): Timing attack mitigation.
-function broadcast(...args) {
-  objectValues(connected).forEach(function(transport) {
-    transport.send(...args);
-  });
 }

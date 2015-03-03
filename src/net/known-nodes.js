@@ -12,11 +12,8 @@ import {popkey} from "../util";
 
 const logInfo = getLogger("known-nodes", "info");
 const logError = getLogger("known-nodes", "error");
-
-const SERVICES_BUF = bitmessage.structs
-  .ServicesBitfield()
-  .set(bitmessage.structs.ServicesBitfield.NODE_NETWORK)
-  .buffer;
+const ServicesBitfield = bitmessage.structs.ServicesBitfield;
+export const SERVICES = ServicesBitfield().set(ServicesBitfield.NODE_NETWORK);
 
 // XXX(Kagami): We may want to fix bitmessage bootstrap API so it will
 // return object with "host", "port" and "stream" properties instead.
@@ -25,7 +22,7 @@ function getSeedObj([host, port, stream]) {
     host,
     port,
     stream: stream || DEFAULT_STREAM,
-    services: SERVICES_BUF,
+    services: SERVICES.buffer,
     // Zero timestamp to mark seed node as not-advertiseable.
     last_active: 0,
   };
@@ -56,35 +53,85 @@ export function init() {
 }
 
 /** Just an alias for `storage.knownNodes.getRandom`. */
-// TODO(Kagami): Error handling.
 export function getRandom(stream, excludeHosts) {
   return storage.knownNodes.getRandom(null, stream, excludeHosts);
 }
 
-/** Add nodes from the `addr` message. */
-export function addAddrs(addrs) {
-  if (!Array.isArray(addrs)) { addrs = [addrs]; }
-  if (!addrs.length) { return Promise.resolve(null); }
+// NOTE(Kagami): This logic is here and not in `tcp` module because
+// `getAddrs` does very similar filterings.
+function filterAddrs(addrs, stream) {
+  let acceptedStreams = [stream, stream*2, stream*2+1];
+  let now = moment();
+  return addrs.filter(function(addr) {
+    if (acceptedStreams.indexOf(addr.stream) === -1) {
+      return false;
+    }
+    let delta = now.diff(addr.time, "hours", true);
+    if (delta > 3 || delta < -3) {
+      return false;
+    }
+    return true;
+  });
+}
+
+/**
+ * Create/update known nodes from the `addr` message and return addrs
+ * which we haven't known before.
+ */
+export function addAddrs(addrs, stream) {
+  // Filter out inappropriate addrs at first.
+  addrs = filterAddrs(addrs, stream);
+  if (!addrs.length) {
+    return Promise.resolve([]);
+  }
   return storage.transaction(function(trx) {
 
-    return storage.knownNodes.count(trx).then(function(curNodesCount) {
-      let canAdd = 20000 - curNodesCount;
-      if (canAdd <= 0) { return; }
-      let nodes = addrs.slice(0, canAdd).map(function(addr) {
-        // Fix object structure to save in the store.
-        let node = Object.assign({}, addr);
-        node.stream = node.stream || DEFAULT_STREAM;
-        if (node.services) {
-          node.services = node.services.buffer;
-        } else {
-          node.services = SERVICES_BUF;
-        }
-        // TODO(Kagami): Do we want to rename `last_active` field?
-        node.last_active = popkey(node, "time") || new Date();
-        return node;
+    return storage.knownNodes.getDups(trx, addrs).then(function(dupNodes) {
+      let dupMap = new Map();
+      dupNodes.forEach(function(n) {
+        dupMap.set([n.host, n.port, n.stream], n.last_active);
       });
-      logInfo("Add %s known node(s)", nodes.length);
-      return storage.knownNodes.add(trx, nodes);
+      let addrsToInsert = [];  // Completely new addresses
+      let addrsToUpdate = [];  // Addresses with updated last_active
+      addrs.forEach(function(addr) {
+        let dupTime = dupMap.get([addr.host, addr.port, addr.stream]);
+        if (typeof dupTime === "undefined") {
+          addrsToInsert.push(addr);
+        } else if (moment(addr.time).isAfter(dupTime)) {
+          addrsToUpdate.push(addr);
+        }
+      });
+      if (!addrsToInsert.length && !addrsToUpdate.length) {
+        // Nothing to do, exiting.
+        return [];
+      }
+      return storage.knownNodes.count(trx).then(function(curNodesCount) {
+        // Save reference because we are going to fix insert array (not
+        // in-place).
+        let addrsToReturn = addrsToInsert;
+        let canInsert = 20000 - curNodesCount;
+        if (canInsert <= 0) {
+          if (!addrsToUpdate.length) {
+            // Nothing to do, exiting.
+            return [];
+          }
+          addrsToInsert = [];
+        } else {
+          addrsToInsert = addrsToInsert.slice(0, canInsert);
+        }
+        // Fix objects structure to save in the store.
+        let nodes = addrsToInsert.concat(addrsToUpdate).map(function(addr) {
+          let node = Object.assign({}, addr);
+          node.services = node.services.buffer;
+          // TODO(Kagami): Do we need to rename `last_active` field?
+          node.last_active = popkey(node, "time");
+          return node;
+        });
+        logInfo("Add/update %s known node(s)", nodes.length);
+        return storage.knownNodes.add(trx, nodes).then(function() {
+          return addrsToReturn;
+        });
+      });
     });
 
   }).catch(function(err) {

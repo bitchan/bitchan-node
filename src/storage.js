@@ -8,6 +8,7 @@
 
 import createKnex from "knex";
 import conf from "./config";
+import {assert} from "./util";
 
 // Knex DB reference.
 let knex;
@@ -104,6 +105,7 @@ export let knownNodes = {
    * @return {Promise}
    */
   add: function(trx, nodes) {
+    assert(nodes.length, "Empty list");
     trx = trx || knex;
     return trx.insert(nodes).into("known_nodes");
   },
@@ -165,5 +167,42 @@ export let knownNodes = {
       .where({stream})
       .where("last_active", ">=", after)
       .limit(limit);
+  },
+
+  /**
+   * Select nodes with the same host, port and stream values from the
+   * store.
+   * @param {?Object} trx - Current transaction
+   * @param {Object[]} nodes - List of {host, port, stream} objects
+   * @return {Promise.<Object[]>}
+   */
+  getDups: function(trx, nodes) {
+    assert(nodes.length, "Empty list");
+    trx = trx || knex;
+    // NOTE(Kagami): We are using UNION to create inline table and then
+    // join over it. See for details:
+    // <https://stackoverflow.com/a/11171387>.
+    // TODO(Kagami): Use `WHERE (a, b) in ((1, 2), (3, 4))` syntax for
+    // PostgreSQL. See for details:
+    // <https://stackoverflow.com/q/6672665>.
+    let head = "SELECT ? as h, ? as p, ? as s";
+    let tail = new Array(nodes.length).join(" UNION SELECT ?, ?, ?");
+    let sql = "(" + head + tail + ")";
+    let bindings = [];
+    nodes.forEach(function(n) {
+      bindings.push(n.host);
+      bindings.push(n.port);
+      bindings.push(n.stream);
+    });
+    let inlineTable = knex.raw(sql, bindings);
+    return trx
+      .select()
+      .from("known_nodes")
+      .innerJoin(inlineTable, function() {
+        this
+          .on("host", "=", "h")
+          .andOn("port", "=", "p")
+          .andOn("stream", "=", "s");
+      });
   },
 };
