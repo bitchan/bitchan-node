@@ -78,10 +78,47 @@ export function transaction(cb) {
   return knex.transaction(cb);
 }
 
+const _getDups = {
+  sqlite: function(trx, nodes) {
+    // NOTE(Kagami): We are using UNION to create inline table and then
+    // join over it. See for details:
+    // <https://stackoverflow.com/a/11171387>.
+    let head = "SELECT ? as h, ? as p, ? as s";
+    let tail = new Array(nodes.length).join(" UNION SELECT ?, ?, ?");
+    let sql = "(" + head + tail + ")";
+    let bindings = [];
+    nodes.forEach(function(n) {
+      bindings.push(n.host);
+      bindings.push(n.port);
+      bindings.push(n.stream);
+    });
+    let inlineTable = knex.raw(sql, bindings);
+    return trx
+      .select()
+      .from("known_nodes")
+      .innerJoin(inlineTable, function() {
+        this
+          .on("host", "=", "h")
+          .andOn("port", "=", "p")
+          .andOn("stream", "=", "s");
+      });
+  },
+
+  pg: function(trx, nodes) {
+    let searchList = nodes.map(function(n) {
+      return [n.host, n.port, n.stream];
+    });
+    return trx
+      .select()
+      .from("known_nodes")
+      .whereIn(["host", "port", "stream"], searchList);
+  },
+};
+
 /**
  * Known nodes storage abstraction.
  */
-export let knownNodes = {
+export const knownNodes = {
   /**
    * Return whether known nodes store is empty.
    * @param {?Object} trx - Current transaction
@@ -193,30 +230,6 @@ export let knownNodes = {
   getDups: function(trx, nodes) {
     assert(nodes.length, "Empty list");
     trx = trx || knex;
-    // NOTE(Kagami): We are using UNION to create inline table and then
-    // join over it. See for details:
-    // <https://stackoverflow.com/a/11171387>.
-    // TODO(Kagami): Use `WHERE (a, b) in ((1, 2), (3, 4))` syntax for
-    // PostgreSQL. See for details:
-    // <https://stackoverflow.com/q/6672665>.
-    let head = "SELECT ? as h, ? as p, ? as s";
-    let tail = new Array(nodes.length).join(" UNION SELECT ?, ?, ?");
-    let sql = "(" + head + tail + ")";
-    let bindings = [];
-    nodes.forEach(function(n) {
-      bindings.push(n.host);
-      bindings.push(n.port);
-      bindings.push(n.stream);
-    });
-    let inlineTable = knex.raw(sql, bindings);
-    return trx
-      .select()
-      .from("known_nodes")
-      .innerJoin(inlineTable, function() {
-        this
-          .on("host", "=", "h")
-          .andOn("port", "=", "p")
-          .andOn("stream", "=", "s");
-      });
+    return _getDups[conf.get("storage-backend")](trx, nodes);
   },
 };
