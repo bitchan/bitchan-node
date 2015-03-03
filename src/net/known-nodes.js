@@ -74,6 +74,10 @@ function filterAddrs(addrs, stream) {
   });
 }
 
+function getAddrMapKey(node) {
+  return `${node.host}|${node.port}|${node.stream}`;
+}
+
 /**
  * Create/update known nodes from the `addr` message and return addrs
  * which we haven't known before.
@@ -87,14 +91,16 @@ export function addAddrs(addrs, stream) {
   return storage.transaction(function(trx) {
 
     return storage.knownNodes.getDups(trx, addrs).then(function(dupNodes) {
-      let dupMap = new Map();
+      // NOTE(Kagami): We can't use ECMA6 Map here because arrays got
+      // compared by reference.
+      let dupMap = Object.create(null);
       dupNodes.forEach(function(n) {
-        dupMap.set([n.host, n.port, n.stream], n.last_active);
+        dupMap[getAddrMapKey(n)] = n.last_active;
       });
       let addrsToInsert = [];  // Completely new addresses
       let addrsToUpdate = [];  // Addresses with updated last_active
       addrs.forEach(function(addr) {
-        let dupTime = dupMap.get([addr.host, addr.port, addr.stream]);
+        let dupTime = dupMap[getAddrMapKey(addr)];
         if (typeof dupTime === "undefined") {
           addrsToInsert.push(addr);
         } else if (moment(addr.time).isAfter(dupTime)) {
