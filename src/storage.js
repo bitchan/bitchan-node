@@ -84,6 +84,9 @@ const _getDups = {
     // join over it. See for details:
     // <https://stackoverflow.com/a/11171387>.
     let head = "SELECT ? as h, ? as p, ? as s";
+    // FIXME(Kagami): This won't work for more than 500 nodes:
+    // <https://www.sqlite.org/limits.html#max_compound_select>.
+    // Query should be splitted in two queries with 500 selects max.
     let tail = new Array(nodes.length).join(" UNION SELECT ?, ?, ?");
     let sql = "(" + head + tail + ")";
     let bindings = [];
@@ -144,6 +147,9 @@ export const knownNodes = {
   add: function(trx, nodes) {
     assert(nodes.length, "Empty list");
     trx = trx || knex;
+    // FIXME(Kagami): This won't work for more than 500 nodes:
+    // <https://www.sqlite.org/limits.html#max_compound_select>.
+    // See also: <https://github.com/tgriesser/knex/issues/721>.
     return trx.insert(nodes).into("known_nodes");
   },
 
