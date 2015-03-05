@@ -61,8 +61,8 @@ function getTrustedPeer(cfgTrustedPeer, stream) {
   });
 }
 
-// Dictionary of connected/half-open transports accessed by IP.
-const connected = {};
+// Hash of connected/half-open transports accessed by IP.
+const connected = Object.create(null);
 // Number of outcoming connections.
 let outcomingNum = 0;
 
@@ -175,11 +175,11 @@ function initTransport({transport, host, port, stream}) {
   logConnInfo();
 
   // Don't update this particular transport too often.
-  let lastUpdate = new Date(0);
+  let lastUpdate = moment(0);
   function bumpActivity() {
     if (moment().diff(lastUpdate, "minutes") >= 5) {
       knownNodes.bumpActivity({host, port, stream});
-      lastUpdate = new Date();
+      lastUpdate = moment();
     }
   }
 
@@ -194,20 +194,18 @@ function initTransport({transport, host, port, stream}) {
       stream,
       services: version.services,
     }]);
-    sendBigAddr({transport, host, port, stream});
-    sendBigInv({transport, host, port, stream});
+    sendBigAddr({transport, stream});
+    sendBigInv({transport, stream});
 
     transport.on("message", function(command, payload) {
       let start = new Date().getTime();
       bumpActivity();
       logDebug(
-        "Got new message '%s' (%s) from %s:%s",
-        command, getSize(payload), host, port);
+        "Got new message '%s' (%s) from %s",
+        command, getSize(payload), transport);
       let handler = messageHandlers[command];
       if (!handler) {
-        return logWarn(
-          "Skip unknown message '%s' from %s:%s",
-          command, host, port);
+        return logWarn("Skip unknown message '%s' from %s", command, transport);
       }
 
       // Process message.
@@ -216,23 +214,23 @@ function initTransport({transport, host, port, stream}) {
         handler({transport, host, port, stream, command, payload});
       } catch(err) {
         return logWarn(
-          "Failed to process message '%s' from %s:%s: %s",
-          command, host, port, err.message);
+          "Failed to process message '%s' from %s (%s)",
+          command, transport, err.message);
       }
 
       let delta = (new Date().getTime() - start) / 1000;
       logDebug(
-        "Message '%s' from %s:%s was successfully processed in %ss",
-        command, host, port, delta);
+        "Message '%s' from %s was successfully processed in %ss",
+        command, transport, delta);
     });
   });
 
   transport.on("warning", function(err) {
-    logWarn("Connection warning from %s:%s: %s", host, port, err.message);
+    logWarn("Connection warning from %s: %s", transport, err.message);
   });
 
   transport.on("error", function(err) {
-    logWarn("Connection error from %s:%s: %s", host, port, err.message);
+    logWarn("Connection error from %s: %s", transport, err.message);
   });
 
   transport.on("close", function() {
@@ -253,14 +251,14 @@ function broadcast(...args) {
 // NOTE(Kagami): We need hoisting to use this variable in
 // `initTransport` function above.
 var messageHandlers = {
-  error: function({payload, host, port}) {
+  error: function({transport, payload}) {
     // TODO(Kagami): Currently we just display incoming error message
     // (as PyBitmessage). We may want to take into account some of this
     // data in the future.
-    let error = messages.error.decodePayload(payload);
-    let type = messages.error.type2str(error.type);
-    let text = `Got error message with type ${type} `;
-    text += `from ${host}:${port}: ${error.errorText}`;
+    const error = messages.error.decodePayload(payload);
+    const type = messages.error.type2str(error.type);
+    let text = `Got error message with type ${type} from ${transport}: `;
+    text += error.errorText;
     if (error.banTime) {
       text += `; ban time is ${error.banTime}s`;
     }
@@ -283,7 +281,7 @@ var messageHandlers = {
   },
 
   addr: function({payload, stream}) {
-    let addrs = messages.addr.decodePayload(payload).addrs;
+    const addrs = messages.addr.decodePayload(payload).addrs;
     logDebug("Got %s filtered network address(es)", addrs.length);
     knownNodes.addAddrs(addrs, stream).then(broadcastAddrs);
   },
@@ -300,13 +298,13 @@ var messageHandlers = {
 
 // Send a huge addr message to our peer. This is only used when we fully
 // establish a connection with a peer.
-function sendBigAddr({transport, host, port, stream}) {
+function sendBigAddr({transport, stream}) {
   knownNodes.getAddrs(stream).then(function(addrs) {
     if (!addrs.length) { return; }
     logDebug(
-      "Send %s initial network address(es) to %s:%s",
-      addrs.length, host, port);
-    let addr = messages.addr.encode(addrs);
+      "Send %s initial network address(es) to %s",
+      addrs.length, transport);
+    const addr = messages.addr.encode(addrs);
     transport.send(addr);
   });
 }
@@ -314,16 +312,16 @@ function sendBigAddr({transport, host, port, stream}) {
 function broadcastAddrs(addrs) {
   if (!addrs.length) { return; }
   logDebug("Broadcast %s network address(es)", addrs.length);
-  let addr = messages.addr.encode(addrs);
+  const addr = messages.addr.encode(addrs);
   broadcast(addr);
 }
 
 // Send a big inv message when the connection with a node is first fully
 // established.
-function sendBigInv({transport, host, port, stream}) {
+function sendBigInv({transport, stream}) {
   storage.inventory.getVectors(null, stream).then(function(vectors) {
     if (!vectors.length) { return; }
-    logDebug("Send %s initial vector(s) to %s:%s", vectors.length, host, port);
+    logDebug("Send %s initial vector(s) to %s", vectors.length, transport);
     do {
       transport.send(messages.inv.encode(vectors.slice(0, 50000)));
       vectors = vectors.slice(50000);

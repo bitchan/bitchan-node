@@ -18,6 +18,8 @@ export function getLogger(prefix, level) {
   prefix = `[${prefix}] `;
   return function(msg, ...args) {
     msg = prefix + msg;
-    return logger.log(level, msg, ...args);
+    // Force empty meta because winston tries to use last argument as a
+    // metadata which might be confusing.
+    return logger.log(level, msg, ...args, {});
   };
 }
