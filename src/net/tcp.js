@@ -8,6 +8,7 @@ import moment from "moment";
 import bitmessage from "bitmessage";
 import {TcpTransport} from "bitmessage-transports";
 import conf from "../config";
+import * as storage from "../storage";
 import {DEFAULT_STREAM, MY_USER_AGENT, getLogger} from "./common";
 import * as knownNodes from "./known-nodes";
 import {objectValues} from "../util";
@@ -194,6 +195,7 @@ function initTransport({transport, host, port, stream}) {
       services: version.services,
     }]);
     sendBigAddr({transport, host, port, stream});
+    sendBigInv({transport, host, port, stream});
 
     transport.on("message", function(command, payload) {
       let start = new Date().getTime();
@@ -301,7 +303,9 @@ var messageHandlers = {
 function sendBigAddr({transport, host, port, stream}) {
   knownNodes.getAddrs(stream).then(function(addrs) {
     if (!addrs.length) { return; }
-    logDebug("Send %s network address(es) to %s:%s", addrs.length, host, port);
+    logDebug(
+      "Send %s initial network address(es) to %s:%s",
+      addrs.length, host, port);
     let addr = messages.addr.encode(addrs);
     transport.send(addr);
   });
@@ -312,4 +316,17 @@ function broadcastAddrs(addrs) {
   logDebug("Broadcast %s network address(es)", addrs.length);
   let addr = messages.addr.encode(addrs);
   broadcast(addr);
+}
+
+// Send a big inv message when the connection with a node is first fully
+// established.
+function sendBigInv({transport, host, port, stream}) {
+  storage.inventory.getVectors(null, stream).then(function(vectors) {
+    if (!vectors.length) { return; }
+    logDebug("Send %s initial vector(s) to %s:%s", vectors.length, host, port);
+    do {
+      transport.send(messages.inv.encode(vectors.slice(0, 50000)));
+      vectors = vectors.slice(50000);
+    } while (vectors.length);
+  });
 }

@@ -211,7 +211,7 @@ export const knownNodes = {
   /**
    * Select bunch of the known nodes.
    * @param {?Object} trx - Current transaction
-   * @param {number[]} stream - Stream number of the nodes
+   * @param {number} stream - Stream number of the nodes
    * @param {Date} after - Nodes shouldn't be older than this time
    * @param {number} limit - Maximum number of resulting nodes
    * @return {Promise.<Object[]>}
@@ -237,5 +237,27 @@ export const knownNodes = {
     assert(nodes.length, "Empty list");
     trx = trx || knex;
     return _getDups[conf.get("storage-backend")](trx, nodes);
+  },
+};
+
+/**
+ * Inventory abstraction.
+ */
+export const inventory = {
+  /**
+   * Select all available non-expired vectors for the given stream.
+   * @param {number} stream - Stream number of the nodes
+   * @return {Promise.<Buffer[]>}
+   */
+  getVectors: function(trx, stream) {
+    trx = trx || knex;
+    return trx
+      .select("vector")
+      .from("inventory")
+      .where({stream})
+      .where("expires", ">", new Date())
+      .then(function(rows) {
+        return rows.map(r => r.vector);
+      });
   },
 };
