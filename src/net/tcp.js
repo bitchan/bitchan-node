@@ -279,7 +279,27 @@ var messageHandlers = {
     knownNodes.addAddrs(addrs, stream).then(broadcastAddrs);
   },
 
-  inv: function() {
+  inv: function({transport, payload}) {
+    let vectors = messages.inv.decodePayload(payload).vectors;
+    if (!vectors.length) { return; }
+    logDebug("Got %s inventory vector(s)", vectors.length);
+    // FIXME(Kagami): We should wait some time and request random object
+    // from random peer. This way if we get multiple inv messages from
+    // multiple peers which list mostly the same objects, we will make
+    // getdata requests for different random objects from the various
+    // peers.
+    // FIXME(Kagami): Flooding attack mitigation.
+    storage.inventory.getDups(null, vectors).then(function(dups) {
+      dups = new Set(dups.map(v => v.toString("hex")));
+      vectors = vectors.filter(v => !dups.has(v.toString("hex")));
+      if (!vectors.length) { return; }
+      logInfo(
+        "Request %s new inventory vector(s) from %s",
+        vectors.length, transport);
+      // NOTE(Kagami): Input vectors list length should be less or equal
+      // than 50,000 so it's safe to encode them in `getdata` message.
+      transport.send(messages.getdata.encode(vectors));
+    });
   },
 
   getdata: function() {
@@ -302,6 +322,9 @@ function sendBigAddr({transport, stream}) {
   });
 }
 
+// Broadcast new addresses to all connected peers.
+// TODO(Kagami): We may want to skip the node-originator of this addr
+// message.
 function broadcastAddrs(addrs) {
   if (!addrs.length) { return; }
   logInfo("Broadcast %s network address(es)", addrs.length);

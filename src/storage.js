@@ -3,8 +3,8 @@
  * same API. While for now it provides only SQL backends, this is not
  * mandatory and non-SQL backends may be added in future.
  */
-// XXX(Kagami): Think through the API: should we always use hash for the
-// input arguments?
+// XXX(Kagami): Think through the API: should we accept parameters only
+// via options object?
 
 import createKnex from "knex";
 import conf from "./config";
@@ -78,7 +78,7 @@ export function transaction(cb) {
   return knex.transaction(cb);
 }
 
-const _getDups = {
+const _getNodeDups = {
   sqlite: function(trx, nodes) {
     // NOTE(Kagami): We are using UNION to create inline table and then
     // join over it. See for details:
@@ -108,7 +108,7 @@ const _getDups = {
   },
 
   pg: function(trx, nodes) {
-    let searchList = nodes.map(function(n) {
+    const searchList = nodes.map(function(n) {
       return [n.host, n.port, n.stream];
     });
     return trx
@@ -236,9 +236,14 @@ export const knownNodes = {
   getDups: function(trx, nodes) {
     assert(nodes.length, "Empty list");
     trx = trx || knex;
-    return _getDups[conf.get("storage-backend")](trx, nodes);
+    return _getNodeDups[conf.get("storage-backend")](trx, nodes);
   },
 };
+
+// Helper for `inventory.getDups`.
+function _getVectorDups(trx, vectors) {
+  return trx("inventory").select("vector").whereIn("vector", vectors);
+}
 
 /**
  * Inventory abstraction.
@@ -246,6 +251,7 @@ export const knownNodes = {
 export const inventory = {
   /**
    * Select all available non-expired vectors for the given stream.
+   * @param {?Object} trx - Current transaction
    * @param {number} stream - Stream number of the nodes
    * @return {Promise.<Buffer[]>}
    */
@@ -259,5 +265,32 @@ export const inventory = {
       .then(function(rows) {
         return rows.map(r => r.vector);
       });
+  },
+
+  /**
+   * Return vectors from the store which are in the given list.
+   * @param {?Object} trx - Current transaction
+   * @param {Buffer[]} vectors - Vectors to find
+   * @return {Promise.<Buffer[]>}
+   */
+  getDups: function(trx, vectors) {
+    trx = trx || knex;
+    let vectorGroups = [];
+    // NOTE(Kagami): Split input vector list into groups with 999 length
+    // each to workaround SQLITE_MAX_VARIABLE_NUMBER (999 by default).
+    // TODO(Kagami): We are using the same code for PostgreSQL
+    // neverthless it's not mandatory to not abuse the DB. Though if
+    // sending 50,000 BLOBs at the same time doesn't hurt PG, this may
+    // be changed in future.
+    while (vectors.length) {
+      vectorGroups.push(vectors.slice(0, 999));
+      vectors = vectors.slice(999);
+    }
+    const qrunner = _getVectorDups.bind(null, trx);
+    const promises = vectorGroups.map(qrunner);
+    return Promise.all(promises).then(function(rowslist) {
+      const rows = Array.prototype.concat.apply([], rowslist);
+      return rows.map(r => r.vector);
+    });
   },
 };
