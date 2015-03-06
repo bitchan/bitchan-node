@@ -6,4 +6,4 @@ sqlite-db-path: bitchan.db
 logging:
   file:
   console:
-    - {level: debug, timestamp: true, colorize: true}
+    - {level: silly, timestamp: true, colorize: true}
