@@ -74,7 +74,11 @@ function filterAddrs(addrs, stream) {
   });
 }
 
-function getAddrMapKey(node) {
+// Compute dict key for the given node.
+// NOTE(Kagami): We can't use array as a keys because in ECMA6 Map keys
+// are got compared by reference. See
+// <http://www.2ality.com/2015/01/es6-maps-sets.html#faq> for details.
+function getnodekey(node) {
   return `${node.host}|${node.port}|${node.stream}`;
 }
 
@@ -91,16 +95,14 @@ export function addAddrs(addrs, stream) {
   return storage.transaction(function(trx) {
 
     return storage.knownNodes.getDups(trx, addrs).then(function(dupNodes) {
-      // NOTE(Kagami): We can't use ECMA6 Map here because arrays got
-      // compared by reference.
-      let dupMap = Object.create(null);
+      let dups = new Map();
       dupNodes.forEach(function(n) {
-        dupMap[getAddrMapKey(n)] = n.last_active;
+        dups.set(getnodekey(n), n.last_active);
       });
       let addrsToInsert = [];  // Completely new addresses
       let addrsToUpdate = [];  // Addresses with updated last_active
       addrs.forEach(function(addr) {
-        let dupTime = dupMap[getAddrMapKey(addr)];
+        let dupTime = dups.get(getnodekey(addr));
         if (typeof dupTime === "undefined") {
           addrsToInsert.push(addr);
         } else if (moment(addr.time).isAfter(dupTime)) {
