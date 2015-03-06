@@ -6,8 +6,9 @@ import moment from "moment";
 import bitmessage from "bitmessage";
 import {TcpTransport} from "bitmessage-transports";
 import conf from "../config";
+import {getLogger} from "../log";
 import * as storage from "../storage";
-import {DEFAULT_STREAM, getLogger} from "./common";
+import {DEFAULT_STREAM} from "./common";
 import {assert, popkey} from "../util";
 
 const logInfo = getLogger("known-nodes", "info");
@@ -53,6 +54,7 @@ export function init() {
 }
 
 /** Just an alias for `storage.knownNodes.getRandom`. */
+// NOTE(Kagami): Error handling occur in tcp module.
 export function getRandom(stream, excludeHosts) {
   return storage.knownNodes.getRandom(null, stream, excludeHosts);
 }

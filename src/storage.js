@@ -242,7 +242,10 @@ export const knownNodes = {
 
 // Helper for `inventory.getDups`.
 function _getVectorDups(trx, vectors) {
-  return trx("inventory").select("vector").whereIn("vector", vectors);
+  return trx
+    .select("vector")
+    .from("inventory")
+    .whereIn("vector", vectors);
 }
 
 /**

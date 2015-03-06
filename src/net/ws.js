@@ -4,7 +4,8 @@
 
 import {WsTransport} from "bitmessage-transports";
 import conf from "../config";
-import {DEFAULT_STREAM, MY_USER_AGENT, getLogger} from "./common";
+import {getLogger} from "../log";
+import {DEFAULT_STREAM, MY_USER_AGENT} from "./common";
 
 const logInfo = getLogger("WebSocket", "info");
 

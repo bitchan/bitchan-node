@@ -8,9 +8,10 @@ import moment from "moment";
 import bitmessage from "bitmessage";
 import {TcpTransport} from "bitmessage-transports";
 import conf from "../config";
-import * as storage from "../storage";
-import {DEFAULT_STREAM, MY_USER_AGENT, getLogger} from "./common";
+import {getLogger} from "../log";
+import {DEFAULT_STREAM, MY_USER_AGENT} from "./common";
 import * as knownNodes from "./known-nodes";
+import * as inventory from "../inventory";
 
 const messages = bitmessage.messages;
 const ServicesBitfield = bitmessage.structs.ServicesBitfield;
@@ -289,9 +290,7 @@ var messageHandlers = {
     // getdata requests for different random objects from the various
     // peers.
     // FIXME(Kagami): Flooding attack mitigation.
-    storage.inventory.getDups(null, vectors).then(function(dups) {
-      dups = new Set(dups.map(v => v.toString("hex")));
-      vectors = vectors.filter(v => !dups.has(v.toString("hex")));
+    inventory.getNewVectors(vectors).then(function(vectors) {
       if (!vectors.length) { return; }
       logInfo(
         "Request %s new inventory vector(s) from %s",
@@ -335,7 +334,7 @@ function broadcastAddrs(addrs) {
 // Send a big inv message when the connection with a node is first fully
 // established.
 function sendBigInv({transport, stream}) {
-  storage.inventory.getVectors(null, stream).then(function(vectors) {
+  inventory.getVectors(stream).then(function(vectors) {
     if (!vectors.length) { return; }
     logDebug("Send %s initial vector(s) to %s", vectors.length, transport);
     do {

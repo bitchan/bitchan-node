@@ -6,7 +6,7 @@
 import winston from "winston";
 import conf from "./config";
 
-const logger = new winston.Logger({transports: []});
+export const logger = new winston.Logger({transports: []});
 export default logger;
 
 export function init() {
@@ -36,4 +36,17 @@ export function init() {
 
     resolve();
   });
+}
+
+/**
+ * Logger factory, simplier than custom loggers.
+ */
+export function getLogger(prefix, level) {
+  prefix = `[${prefix}] `;
+  return function(msg, ...args) {
+    msg = prefix + msg;
+    // NOTE(Kagami): Force empty meta because winston tries to use last
+    // argument as a metadata which might be confusing.
+    return logger.log(level, msg, ...args, {});
+  };
 }
