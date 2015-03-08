@@ -146,7 +146,7 @@ export function addAddrs(addrs, stream) {
       });
     });
 
-  }).catch(function(err) {
+  }).debug(addrs.length <= 5).catch(function(err) {
     logError("Error in `knownNodes.addAddrs`: %s", err.message);
     throw err;
   });

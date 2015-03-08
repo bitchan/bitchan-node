@@ -28,7 +28,7 @@ export function getNewVectors(vectors) {
       return vectors.filter(v => !dups.has(v.toString("hex")));
     });
 
-  }).catch(function(err) {
+  }).debug(vectors.length <= 5).catch(function(err) {
     logError("Error in `inventory.getNewVectors`: %s", err.message);
     throw err;
   });
