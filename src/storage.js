@@ -51,26 +51,26 @@ export function init() {
 }
 
 function initSchema() {
-  return knex.schema.createTableIfNotExists("inventory", function(table) {
-    table.string("vector", 32).primary();
-    table.binary("payload").notNullable();  // Message payload data
-    table.timestamp("expires").notNullable();
-    table.integer("type").notNullable();  // Object type, 0-3 currently
-    table.integer("stream").notNullable();
-  })
-  // NOTE(Kagami): knex doesn't have support for "ON CONFLICT" so we
-  // are using raw SQL here. See
-  // <https://github.com/tgriesser/knex/issues/694> for details.
-  // Beware to not put invalid SQL for PostgreSQL or SQLite.
-  .raw(`
-    CREATE TABLE IF NOT EXISTS known_nodes (
-      host VARCHAR(39) NOT NULL,
-      port INTEGER NOT NULL,
-      stream INTEGER NOT NULL,
-      services BLOB NOT NULL,
-      last_active DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE(host, port, stream) ON CONFLICT REPLACE
-    )`);
+  const has = tbname => knex.schema.hasTable.bind(knex.schema, tbname);
+  return has("known_nodes")().then(function(exists) {
+    if (exists) { return; }
+    return knex.schema.createTable("known_nodes", function(table) {
+      table.string("host", 39).notNullable();
+      table.integer("port").notNullable();
+      table.integer("stream").notNullable();
+      table.binary("services").notNullable();
+      table.timestamp("last_active").notNullable();
+      table.unique(["host", "port", "stream"]);
+    });
+  }).then(has("inventory")).then(function(exists) {
+    if (exists) { return; }
+    return knex.schema.createTable("inventory", function(table) {
+      table.string("vector", 32).primary();
+      table.binary("payload").notNullable();
+      table.timestamp("expires").notNullable();
+      table.integer("stream").notNullable().index();
+    });
+  });
 }
 
 /** Start a new transaction. */
@@ -78,24 +78,56 @@ export function transaction(cb) {
   return knex.transaction(cb);
 }
 
-const _getNodeDups = {
+// Similar to `_.pick`: extract values from object for the given keys.
+function extract(keys, obj) {
+  return keys.map(function(key) {
+    if (!Object.prototype.hasOwnProperty.call(obj, key)) {
+      throw new Error("Non-consistent objects");
+    }
+    return obj[key];
+  });
+}
+
+/** Database-indepent UPSERT. */
+const upsert = {
+  sqlite: function(tbname, trx, rows) {
+    assert(rows.length, "Empty input");
+    const keys = Object.keys(rows[0]);
+    assert(keys.length, "Empty object");
+    const formatter = new trx.client.Formatter();
+    // INSERT OR REPLACE INTO t (c1, c2) VALUES (v11, v12), (v21, v22)
+    const head = "INSERT OR REPLACE INTO " + formatter.wrap(tbname);
+    const cols = "(" + formatter.columnize(keys) + ")";
+    const valcol = "(" + formatter.parameterize(keys) + ")";
+    const valcols = new Array(rows.length).fill(valcol).join(", ");
+    const sql = [head, cols, "VALUES", valcols].join(" ");
+    const bindings = [].concat(...rows.map(extract.bind(null, keys)));
+    return trx.raw(sql, bindings);
+  },
+
+  pg: function() {
+    throw new Error("Not implemented yet");
+  },
+};
+
+const getNodeDups = {
   sqlite: function(trx, nodes) {
     // NOTE(Kagami): We are using UNION to create inline table and then
     // join over it. See for details:
     // <https://stackoverflow.com/a/11171387>.
-    let head = "SELECT ? as h, ? as p, ? as s";
+    const head = "SELECT ? as h, ? as p, ? as s";
     // FIXME(Kagami): This won't work for more than 500 nodes:
     // <https://www.sqlite.org/limits.html#max_compound_select>.
     // Query should be splitted in two queries with 500 selects max.
-    let tail = new Array(nodes.length).join(" UNION SELECT ?, ?, ?");
-    let sql = "(" + head + tail + ")";
+    const tail = new Array(nodes.length).join(" UNION SELECT ?, ?, ?");
+    const sql = "(" + head + tail + ")";
     let bindings = [];
     nodes.forEach(function(n) {
       bindings.push(n.host);
       bindings.push(n.port);
       bindings.push(n.stream);
     });
-    let inlineTable = knex.raw(sql, bindings);
+    const inlineTable = knex.raw(sql, bindings);
     return trx
       .select()
       .from("known_nodes")
@@ -139,18 +171,13 @@ export const knownNodes = {
   },
 
   /**
-   * Add one or many nodes to the store.
-   * @param {?Object} trx - Current transaction
-   * @param {(Object|Object[])} nodes - Node object(s)
+   * Add or update nodes to the store.
+   * @param {Object} trx - Current transaction
+   * @param {Object[]} nodes - Nodes
    * @return {Promise}
    */
-  add: function(trx, nodes) {
-    assert(nodes.length, "Empty list");
-    trx = trx || knex;
-    // FIXME(Kagami): This won't work for more than 500 nodes:
-    // <https://www.sqlite.org/limits.html#max_compound_select>.
-    // See also: <https://github.com/tgriesser/knex/issues/721>.
-    return trx.insert(nodes).into("known_nodes");
+  upsert: function(trx, nodes) {
+    return upsert[conf.get("storage-backend")]("known_nodes", trx, nodes);
   },
 
   /**
@@ -236,12 +263,12 @@ export const knownNodes = {
   getDups: function(trx, nodes) {
     assert(nodes.length, "Empty list");
     trx = trx || knex;
-    return _getNodeDups[conf.get("storage-backend")](trx, nodes);
+    return getNodeDups[conf.get("storage-backend")](trx, nodes);
   },
 };
 
 // Helper for `inventory.getDups`.
-function _getVectorDups(trx, vectors) {
+function getVectorDups(trx, vectors) {
   return trx
     .select("vector")
     .from("inventory")
@@ -289,7 +316,7 @@ export const inventory = {
       vectorGroups.push(vectors.slice(0, 999));
       vectors = vectors.slice(999);
     }
-    const qrunner = _getVectorDups.bind(null, trx);
+    const qrunner = getVectorDups.bind(null, trx);
     const promises = vectorGroups.map(qrunner);
     return Promise.all(promises).then(function(rowslist) {
       const rows = Array.prototype.concat.apply([], rowslist);
