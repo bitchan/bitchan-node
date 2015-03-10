@@ -33,3 +33,16 @@ export function getNewVectors(vectors) {
     throw err;
   });
 }
+
+/** Try to add object to the store and ignore duplicates. */
+export function add(object) {
+  // NOTE(Kagami): Insert may fail for another reason (e.g. some DB
+  // internal error). But pg's version of insert-when-not-exists is
+  // still vulnerable to the race condition (see
+  // <https://stackoverflow.com/a/13342031>) so it's better to catch
+  // errors here anyway.
+  return storage.inventory
+    .add(null, object)
+    .then(() => true)
+    .catch(() => false);
+}

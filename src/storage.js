@@ -65,9 +65,9 @@ function initSchema() {
   }).then(has("inventory")).then(function(exists) {
     if (exists) { return; }
     return knex.schema.createTable("inventory", function(table) {
-      table.string("vector", 32).primary();
+      table.binary("vector").primary();
       table.binary("payload").notNullable();
-      table.timestamp("expires").notNullable();
+      table.dateTime("expires").notNullable();
       table.integer("stream").notNullable().index();
     });
   });
@@ -322,5 +322,16 @@ export const inventory = {
       const rows = Array.prototype.concat.apply([], rowslist);
       return rows.map(r => r.vector);
     });
+  },
+
+  /**
+   * Add new object to the store.
+   * @param {?Object} trx - Current transaction
+   * @param {Object} object - Object properties
+   * @return {Promise}
+   */
+  add: function(trx, object) {
+    trx = trx || knex;
+    return trx.insert(object).into("inventory");
   },
 };

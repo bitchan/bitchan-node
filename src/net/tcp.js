@@ -13,8 +13,9 @@ import {DEFAULT_STREAM, MY_USER_AGENT} from "./common";
 import * as knownNodes from "./known-nodes";
 import * as inventory from "../inventory";
 
+const structs = bitmessage.structs;
+const ServicesBitfield = structs.ServicesBitfield;
 const messages = bitmessage.messages;
-const ServicesBitfield = bitmessage.structs.ServicesBitfield;
 const logSilly = getLogger("TCP", "silly");
 const logDebug = getLogger("TCP", "debug");
 const logInfo = getLogger("TCP", "info");
@@ -212,7 +213,7 @@ function initTransport({transport, host, port, stream}) {
 
       delta = moment().diff(start, "seconds", true);
       logSilly(
-        "Message '%s' from %s was successfully processed in %ss",
+        "Message '%s' from %s was processed in %ss",
         command, transport, delta);
     });
   });
@@ -304,7 +305,32 @@ var messageHandlers = {
   getdata: function() {
   },
 
-  object: function() {
+  object: function({transport, payload, stream}) {
+    // NOTE(Kagami): We don't use `.validatePayload` because we need
+    // some object's fields to store it and decoding twice is stupid.
+    let object = structs.object.decodePayload(payload);
+    if (object.stream !== stream) {
+      return logWarn(
+        "The object's stream number " + object.stream +
+        " is not the one we are interested in"
+      );
+    }
+    const vector = structs.inv_vect.encode(payload);
+    const objdata = {
+      vector,
+      payload,
+      expires: object.expires,
+      stream: object.stream,
+    };
+    inventory.add(objdata).then(function(saved) {
+      if (saved) {
+        logDebug("Saved object %s from %s", vector.toString("hex"), transport);
+      } else {
+        logDebug(
+          "Ignore already stored object %s from %s",
+          vector.toString("hex"), transport);
+      }
+    });
   },
 };
 
