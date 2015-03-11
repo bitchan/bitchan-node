@@ -145,7 +145,7 @@ function listenIncoming(opts) {
     process.exit(1);
   });
   server.listen(opts.port, opts.host);
-  logInfo("Listening at %s:%s", opts.host, opts.port);
+  logInfo("Listen at %s:%s", opts.host, opts.port);
 }
 
 // Human-readably size of the message.

@@ -23,6 +23,8 @@ here). WebSocket server will listen at 18444. By default SQLite database
 will be used to store Bitmessage objects at `~/.bitchan/bitchan.db`.
 Logs will be placed at `~/.bitchan/bitchan.log`.
 
+By default `bitchan-node` will also spawn [web interface](https://github.com/bitchan/bitchan-web) at 28444 port which should be accessible in browser by http://localhost:28444/
+
 To run `bitchan-node` in a background you may either use
 [forever utility](https://www.npmjs.com/package/forever) or some sort of
 terminal multiplexing/nohup.

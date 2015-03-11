@@ -1,4 +1,4 @@
 /.travis.yml
 /.jshint*
 bitchan.yaml
-bitchan.db
+bitchan.db*

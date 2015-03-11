@@ -15,7 +15,7 @@ let knex;
 
 export function init() {
   return new Promise(function(resolve) {
-    let backend = conf.get("storage-backend");
+    const backend = conf.get("storage-backend");
     if (backend === "sqlite") {
       knex = createKnex({
         client: "sqlite3",
@@ -28,7 +28,7 @@ export function init() {
       // NOTE(Kagami): Workaround `count` result as string on
       // node-postgres. See
       // <https://github.com/tgriesser/knex/issues/387> for details.
-      let pg = require("pg");
+      const pg = require("pg");
       pg.types.setTypeParser(20, "text", parseInt);
       knex = createKnex({
         client: "pg",

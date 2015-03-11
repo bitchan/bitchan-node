@@ -1,8 +1,17 @@
 # Default bitchan config.
+# See <https://en.wikipedia.org/wiki/YAML> for a syntax reference.
 
 ###
 # Networking settings.
 ###
+
+# Connect to the specified node and only the specified node. Useful if
+# you trust a node on your local network and want to sync to it quickly.
+# Disallows incoming connections. Disables the built-in timing attack
+# mitigation mechanism. (This is the same as PyBitmessage setting.)
+# Has format ["host", port]. Connects to the trusted peer at localhost
+# by default.
+#tcp-trusted-peer: ["localhost", 8444]
 
 # TCP listening settings.
 #tcp-host: 0.0.0.0
@@ -23,14 +32,6 @@
 #tcp-dns-seeds:
 #  - ["bootstrap8444.bitmessage.org", 8444]
 #  - ["bootstrap8080.bitmessage.org", 8080]
-
-# Connect to the specified node and only the specified node. Useful if
-# you trust a node on your local network and want to sync to it quickly.
-# Disallows incoming connections. Disables the built-in timing attack
-# mitigation mechanism. (This is the same as PyBitmessage setting.)
-# Has format ["host", port]. Connects to the trusted peer at localhost
-# by default.
-#tcp-trusted-peer: ["localhost", 8444]
 
 # WebSocket listening settings.
 # WebSocket server used to proxy web-client messages into Bitmessage
@@ -69,3 +70,11 @@
 #    - {filename: ~/.bitchan/bitchan.log, level: warn, json: false}
 #  console:
 #    - {level: info, timestamp: true, colorize: true}
+
+###
+# Web UI settings.
+###
+
+#webui: true
+#webui-host: localhost
+#webui-port: 28444

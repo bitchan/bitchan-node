@@ -36,9 +36,11 @@
   },
   "dependencies": {
     "babel": "^4.3.0",
+    "bitchan-web": "bitchan/bitchan-web",
     "bitmessage": "bitchan/bitmessage",
     "bitmessage-transports": "bitchan/bitmessage-transports",
     "convict": "^0.6.1",
+    "express": "^4.12.2",
     "js-yaml": "^3.2.3",
     "knex": "tgriesser/knex",
     "minimist": "^1.1.0",

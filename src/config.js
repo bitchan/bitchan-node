@@ -77,6 +77,9 @@ export const conf = convict({
   "pg-password": {default: "secret"},
   "pg-database": {default: APP_NAME},
   "logging": {default: DEFAULT_LOGGING, format: "*"},
+  "webui": {default: true},
+  "webui-host": {default: "localhost"},
+  "webui-port": {default: 28444},
 });
 export default conf;
 
