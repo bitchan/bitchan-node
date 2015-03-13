@@ -36,7 +36,7 @@
   },
   "dependencies": {
     "babel": "^4.3.0",
-    "bitchan-web": "bitchan/bitchan-web",
+    "bitchan-web": "*",
     "bitmessage": "bitchan/bitmessage",
     "bitmessage-transports": "bitchan/bitmessage-transports",
     "convict": "^0.6.1",
