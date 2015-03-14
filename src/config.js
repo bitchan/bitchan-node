@@ -63,12 +63,12 @@ const DEFAULT_LOGGING = {
 // TODO(Kagami): Validate options.
 export const conf = convict({
   "debug": {default: false},
-  "tcp-host": {default: "0.0.0.0"},
+  "tcp-host": {default: "::"},
   "tcp-port": {default: 8444, format: "port"},
   "tcp-seeds": {default: DEFAULT_SEEDS},
   "tcp-dns-seeds": {default: DEFAULT_DNS_SEEDS},
   "tcp-trusted-peer": {default: ["localhost", 8444], format: "*"},
-  "ws-host": {default: "0.0.0.0"},
+  "ws-host": {default: "::"},
   "ws-port": {default: 18444, format: "port"},
   "storage-backend": {default: "sqlite", format: ["sqlite", "pg"]},
   "sqlite-db-path": {default: DEFAULT_SQLITE_DB_PATH},

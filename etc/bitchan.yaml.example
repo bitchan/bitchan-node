@@ -14,7 +14,7 @@
 #tcp-trusted-peer: ["localhost", 8444]
 
 # TCP listening settings.
-#tcp-host: 0.0.0.0
+#tcp-host: "::"
 #tcp-port: 8444
 
 # Bootstrap settings. Don't modify it without necessity.
@@ -36,7 +36,7 @@
 # WebSocket listening settings.
 # WebSocket server used to proxy web-client messages into Bitmessage
 # network since browsers don't have TCP support.
-#ws-host: 0.0.0.0
+#ws-host: "::"
 #ws-port: 18444
 
 ###
@@ -76,5 +76,5 @@
 ###
 
 #webui: true
-#webui-host: localhost
+#webui-host: "localhost"
 #webui-port: 28444
