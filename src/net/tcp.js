@@ -171,6 +171,7 @@ function initTransport({transport, host, port, stream}) {
   let lastUpdate = moment(0);
   function bumpActivity() {
     if (moment().diff(lastUpdate, "minutes") >= 5) {
+      logDebug("Bump activity of %s:%s", host, port);
       knownNodes.bumpActivity({host, port, stream});
       lastUpdate = moment();
     }
@@ -192,10 +193,10 @@ function initTransport({transport, host, port, stream}) {
 
     transport.on("message", function(command, payload) {
       start = moment();
-      bumpActivity();
       logSilly(
         "Got new message '%s' (%s) from %s",
         command, getSize(payload), transport);
+      bumpActivity();
       const handler = messageHandlers[command];
       if (!handler) {
         return logWarn("Skip unknown message '%s' from %s", command, transport);
